@@ -14,19 +14,18 @@ public:
 
 public:
 	void SetUart(Uart* uart_);
-	void Add(DynamixelUART& dynamixel);
+	void Add(DynamixelUART* pDynamixel);
 	size_t CountDynamixel();
 	void Clear();
 
 	bool SetGoalPosition(const vector<unsigned short>& goalPosition);
 	bool SetTorqueEnable(bool isEnabled);
-
-
+	
 	DynamixelUART& operator[](size_t index);
 
 private:
 	DynamixelUART broadcastDynamixel;
-	std::vector<DynamixelUART> dynamixelVector;
+	std::vector<DynamixelUART*> dynamixelVector;
 	Uart* uart;
 };
 

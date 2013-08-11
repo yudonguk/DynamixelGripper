@@ -1,6 +1,7 @@
 #include "DynamixelGroup.h"
 
 #include "DynamixelUARTDef.h"
+#include "DummyDynamixelUART.h"
 
 DynamixelGroup::DynamixelGroup( Uart* uart_ /*= NULL*/ )
 	: uart(uart_), broadcastDynamixel(uart, ID_BROADCAST)
@@ -9,6 +10,7 @@ DynamixelGroup::DynamixelGroup( Uart* uart_ /*= NULL*/ )
 
 DynamixelGroup::~DynamixelGroup()
 {
+	Clear();
 }
 
 void DynamixelGroup::SetUart( Uart* uart_ )
@@ -17,9 +19,9 @@ void DynamixelGroup::SetUart( Uart* uart_ )
 	broadcastDynamixel = DynamixelUART(uart, ID_BROADCAST);
 }
 
-void DynamixelGroup::Add( DynamixelUART& dynamixel )
+void DynamixelGroup::Add( DynamixelUART* pDynamixel )
 {
-	dynamixelVector.push_back(dynamixel);
+	dynamixelVector.push_back(pDynamixel);
 }
 
 size_t DynamixelGroup::CountDynamixel()
@@ -29,11 +31,16 @@ size_t DynamixelGroup::CountDynamixel()
 
 DynamixelUART& DynamixelGroup::operator[]( size_t index )
 {
-	return dynamixelVector[index];
+	return *dynamixelVector[index];
 }
 
 void DynamixelGroup::Clear()
 {
+	for (size_t i = 0; i < dynamixelVector.size(); i++)
+	{
+		delete dynamixelVector[i];
+		dynamixelVector[i] = NULL;
+	}
 	dynamixelVector.clear();
 }
 
@@ -44,9 +51,12 @@ bool DynamixelGroup::SetGoalPosition( const vector<unsigned short>& goalPosition
 
 	for (size_t i = 0;  i < dynamixelVector.size(); i++)
 	{
+		if(dynamixelVector[i]->id == DummyDynamixelUart::DUMMY_ID)
+			continue;
+
 		unsigned char* pPosition = (unsigned char*)(&goalPosition[i]);
 
-		data.push_back(dynamixelVector[i].id);
+		data.push_back(dynamixelVector[i]->id);
 		data.push_back(pPosition[0]);
 		data.push_back(pPosition[1]);
 	}
@@ -61,7 +71,10 @@ bool DynamixelGroup::SetTorqueEnable( bool isEnabled )
 
 	for (size_t i = 0;  i < dynamixelVector.size(); i++)
 	{
-		data.push_back(dynamixelVector[i].id);
+		if(dynamixelVector[i]->id == DummyDynamixelUart::DUMMY_ID)
+			continue;
+
+		data.push_back(dynamixelVector[i]->id);
 		data.push_back(isEnabled ? 1 : 0);
 	}
 

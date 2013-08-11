@@ -4,6 +4,7 @@
 #include <device/OprosPrintMessage.h>
 
 #include "DynamixelUARTDef.h"
+#include "DummyDynamixelUART.h"
 
 DynamixelGripper::DynamixelGripper()
 	: uart(NULL), gripperControlThread(NULL), mIsGripped(false)
@@ -296,8 +297,11 @@ bool DynamixelGripper::Setting( Property& parameter)
 		
 		PrintMessage("\r\n");
 
-		DynamixelUART dynamixel(uart, dynamixelProperty.id);
-		dynamixelGroup.Add(dynamixel);
+		if(dynamixelProperty.id == DummyDynamixelUart::DUMMY_ID)
+			dynamixelGroup.Add(new DummyDynamixelUart());
+		else
+			dynamixelGroup.Add(new DynamixelUART(uart, dynamixelProperty.id));
+		
 		dynamixelPropertyVector.push_back(dynamixelProperty);
 	}
 
