@@ -1,8 +1,9 @@
-#include "DynamixelGripper.h"
+﻿ #include "DynamixelGripper.h"
 
 #include <device/ServoActuator.h>
 #include <device/OprosPrintMessage.h>
 
+#include "Communication/SerialCommunication.h"
 #include "DynamixelUARTDef.h"
 
 DynamixelGripper::DynamixelGripper()
@@ -39,12 +40,11 @@ int DynamixelGripper::Finalize()
 
 	if(uart != NULL)
 	{
+		uart->Finalize();
 		delete uart;
 		uart = NULL;
 	}
-
-	uartLibraryLoader.reset();
-
+	
 	_status = DEVICE_CREATED;
 	return API_SUCCESS;
 }
@@ -136,46 +136,26 @@ int DynamixelGripper::Disable()
 
 bool DynamixelGripper::Setting( Property& parameter)
 {
-	//UARTAPIName
-	string uartApiName;
-	if (parameter.FindName("UARTAPIName") == false)
+	if (uart != NULL)
 	{
-		PrintMessage("Error : DynamixelManipulator::Setting()->Can't find UARTAPIName<< %s(%d)\r\n", __FILE__, __LINE__);
+		uart->Finalize();
+		delete uart;
+		uart = NULL;
+	}
+
+	uart = new SerialCommunication;
+
+	if(uart->Initialize(parameter) != API_SUCCESS)
+	{
+		PrintMessage("Error : DynamixelManipulator::Setting()->Can't Initialize UART<< %s(%d)\r\n", __FILE__, __LINE__);
 		return false;
 	}
-	uartApiName = parameter.GetValue("UARTAPIName");
-
-	try
+	else if(uart->Enable() != API_SUCCESS)
 	{
-		if (uart != NULL)
-		{
-			delete uart;
-			uart = NULL;
-			uartLibraryLoader.reset();
-		}
-		
-		uartLibraryLoader.reset(new DynamicLibraryLoader(uartApiName));
+		PrintMessage("Error : DynamixelManipulator::Setting()->Can't Enable UART<< %s(%d)\r\n", __FILE__, __LINE__);
+		return false;
+	}
 	
-		uart = static_cast<Uart*>(uartLibraryLoader->GetFunction<GET_OPROS_API>("GetAPI")());
-
-		if(uart->Initialize(parameter) != API_SUCCESS)
-		{
-			PrintMessage("Error : DynamixelManipulator::Setting()->Can't Initialize UART<< %s(%d)\r\n", __FILE__, __LINE__);
-			return false;
-		}
-		else if(uart->Enable() != API_SUCCESS)
-		{
-			PrintMessage("Error : DynamixelManipulator::Setting()->Can't Enable UART<< %s(%d)\r\n", __FILE__, __LINE__);
-			return false;
-		}
-	}
-	catch (DynamicLibraryLoader::CanNotLoadException&)
-	{
-		uartLibraryLoader.reset();	
-		PrintMessage("Error : DynamixelManipulator::Setting()->Can't Load UART<< %s(%d)\r\n", __FILE__, __LINE__);
-		return false;
-	}
-
 	dynamixelPropertyVector.clear();
 	dynamixelGroup.Clear();
 	dynamixelGroup.SetUart(uart);

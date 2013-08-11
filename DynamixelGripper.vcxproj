@@ -71,7 +71,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="DynamicLibraryLoader.h" />
+    <ClInclude Include="Communication\SerialCommunication.h" />
+    <ClInclude Include="Communication\SerialImpl.h" />
+    <ClInclude Include="Communication\SerialLinux.h" />
+    <ClInclude Include="Communication\SerialWindows.h" />
     <ClInclude Include="Dynamixel.h" />
     <ClInclude Include="DynamixelGripper.h" />
     <ClInclude Include="DynamixelGroup.h" />
@@ -80,6 +83,9 @@
     <ClInclude Include="MessageQueue.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Communication\SerialCommunication.cpp" />
+    <ClCompile Include="Communication\SerialLinux.cpp" />
+    <ClCompile Include="Communication\SerialWindows.cpp" />
     <ClCompile Include="Dynamixel.cpp" />
     <ClCompile Include="DynamixelGripper.cpp" />
     <ClCompile Include="DynamixelGroup.cpp" />

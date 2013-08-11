@@ -8,7 +8,6 @@
 #include <boost/smart_ptr.hpp>
 #include <boost/thread.hpp>
 
-#include "DynamicLibraryLoader.h"
 #include "DynamixelUART.h"
 #include "DynamixelGroup.h"
 
@@ -93,7 +92,6 @@ private:
 	void GripperControlThreadHandler();
 
 private:
-	boost::shared_ptr<DynamicLibraryLoader> uartLibraryLoader;
 	DynamixelGroup dynamixelGroup;
 	vector<DynamixelProperty> dynamixelPropertyVector;
 
