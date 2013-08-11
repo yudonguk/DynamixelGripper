@@ -93,7 +93,6 @@ private:
 	void GripperControlThreadHandler();
 
 private:
-	boost::shared_ptr<DynamicLibraryLoader> uartLibraryLoader;
 	DynamixelGroup dynamixelGroup;
 	vector<DynamixelProperty> dynamixelPropertyVector;
 
