@@ -7,9 +7,7 @@
 #include <oprostypes.h>
 #include <boost/smart_ptr.hpp>
 #include <boost/thread.hpp>
-#include <boost/thread/shared_mutex.hpp>
 
-#include "DynamicLibraryLoader.h"
 #include "DynamixelUART.h"
 #include "DynamixelGroup.h"
 
@@ -43,7 +41,7 @@ protected:
 		double minimumPositionLimit;
 		double maximumPositionLimit;
 	};
-	
+
 	struct GripperDynamixelProperty : public DynamixelProperty
 	{
 		GripperDynamixelProperty()
@@ -67,8 +65,8 @@ public:
 	virtual int OnExecute();
 
 public:
-	virtual int Stop();
 	virtual int RunHoming();
+	virtual int Stop();
 	virtual int EmergencyStop();
 	virtual int SetPosition(vector<double> position, vector<unsigned long> time);
 	virtual int GetPosition(vector<double>& position);
@@ -81,7 +79,7 @@ public:
 private:
 	bool Setting(Property& parameter);
 	bool EnableDynamixel(DynamixelUART& dynamixel, const DynamixelProperty& property);
-	
+
 	inline unsigned short ConvertPowerUnitToDynamixel(const double& percent);
 	inline unsigned short ConvertPositionUnitToDynamixel(const double& degree, const double& offset, const double& resolution);
 	inline unsigned short ConvertVelocityUnitToDynamixel(const double& rpm);
@@ -95,13 +93,12 @@ private:
 	void GripperControlThreadHandler();
 
 private:
-	boost::shared_ptr<DynamicLibraryLoader> uartLibraryLoader;
 	DynamixelGroup dynamixelGroup;
-	std::vector<DynamixelProperty> dynamixelPropertyVector;
+	vector<DynamixelProperty> dynamixelPropertyVector;
 
 	boost::shared_ptr<DynamixelUART> gripper;
 	GripperDynamixelProperty gripperProperty;
-	
+
 	MessageQueue<GripperCommand> gripperMessageQueue;
 	boost::thread* gripperControlThread;
 
