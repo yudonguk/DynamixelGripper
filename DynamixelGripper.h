@@ -7,6 +7,7 @@
 #include <oprostypes.h>
 #include <boost/smart_ptr.hpp>
 #include <boost/thread.hpp>
+#include <boost/thread/shared_mutex.hpp>
 
 #include "DynamicLibraryLoader.h"
 #include "DynamixelUART.h"
@@ -63,10 +64,11 @@ public:
 	virtual int Disable();
 	virtual int SetParameter(Property parameter);
 	virtual int GetParameter(Property &parameter);
+	virtual int OnExecute();
 
 public:
-	virtual int RunHoming();
 	virtual int Stop();
+	virtual int RunHoming();
 	virtual int EmergencyStop();
 	virtual int SetPosition(vector<double> position, vector<unsigned long> time);
 	virtual int GetPosition(vector<double>& position);
@@ -95,7 +97,7 @@ private:
 private:
 	boost::shared_ptr<DynamicLibraryLoader> uartLibraryLoader;
 	DynamixelGroup dynamixelGroup;
-	vector<DynamixelProperty> dynamixelPropertyVector;
+	std::vector<DynamixelProperty> dynamixelPropertyVector;
 
 	boost::shared_ptr<DynamixelUART> gripper;
 	GripperDynamixelProperty gripperProperty;
@@ -105,7 +107,9 @@ private:
 
 	Uart* uart;
 	bool mIsGripped;
-	vector<double> previousPosition;
+
+	boost::shared_mutex mJointPositionMutex;
+	std::vector<double> mJointPosition;
 };
 
 #endif //__DYNAMIXEL_MANIPULATOR_H__

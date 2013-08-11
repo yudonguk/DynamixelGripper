@@ -23,7 +23,7 @@ int DynamixelGripper::Initialize( Property parameter )
 		return API_ERROR;
 	}
 
-	previousPosition.resize(dynamixelGroup.CountDynamixel());
+	mJointPosition.resize(dynamixelGroup.CountDynamixel());
 
 	_status = DEVICE_READY;
 	return API_SUCCESS;
@@ -585,6 +585,47 @@ int DynamixelGripper::GetParameter( Property& parameter )
 	return API_SUCCESS;
 }
 
+int DynamixelGripper::OnExecute()
+{
+	if(_status != DEVICE_ACTIVE)
+	{
+		PrintMessage("Error : DynamixelManipulator::OnExecute()->Precondition not met<< %s(%d)\r\n", __FILE__, __LINE__);
+		return API_ERROR;
+	}
+
+	const size_t dynamixelCount = dynamixelGroup.CountDynamixel();	
+	std::vector<double> jointPosition(dynamixelCount);
+
+	uart->Lock();
+
+	bool error = false;
+	for (size_t i = 0; i < dynamixelCount; i++)
+	{
+		unsigned short presentPositionRaw = 0;
+		if (dynamixelGroup[i].GetPresentPosition(presentPositionRaw) == false)
+		{
+			PrintMessage("Error : DynamixelManipulator::GetPosition()->Can't GetPosition Dynamixel[%d]<< %s(%d)\r\n", i, __FILE__, __LINE__);
+			error = true;
+			break;
+		}
+
+		//convert
+		jointPosition[i] = ConvertPositionUnitToDegree(presentPositionRaw
+			, dynamixelPropertyVector[i].positionOffset
+			, dynamixelPropertyVector[i].positionResolution);
+	}
+	uart->Unlock();
+
+	if (error)
+		return API_ERROR;
+	
+	boost::unique_lock<boost::shared_mutex> lock(mJointPositionMutex);
+
+	mJointPosition = std::move(jointPosition);
+
+	return API_SUCCESS;
+}
+
 int DynamixelGripper::RunHoming()
 {
 	if(_status == DEVICE_CREATED)
@@ -694,8 +735,6 @@ int DynamixelGripper::SetPosition( vector<double> position, vector<unsigned long
 	}
 	uart->Unlock();
 
-	previousPosition = position;
-
 	return API_SUCCESS;
 }
 
@@ -707,34 +746,11 @@ int DynamixelGripper::GetPosition( vector<double> &position )
 		return API_ERROR;
 	}
 
-	size_t dynamixelCount = dynamixelGroup.CountDynamixel();
+	boost::shared_lock<boost::shared_mutex> lock(mJointPositionMutex);
 
-	position.resize(dynamixelCount);
-	position = previousPosition;
-	return API_SUCCESS;
+	position.resize(mJointPosition.size());
+	position = mJointPosition;
 
-	uart->Lock();
-
-	bool error = false;
-	for (unsigned int i = 0; i < dynamixelCount; i++)
-	{
-		unsigned short presentPositionRaw = 0;
-		if (dynamixelGroup[i].GetPresentPosition(presentPositionRaw) == false)
-		{
-			PrintMessage("Error : DynamixelManipulator::GetPosition()->Can't GetPosition Dynamixel[%d]<< %s(%d)\r\n", i, __FILE__, __LINE__);
-			error = true;
-			continue;
-		}
-
-		//convert
-		position[i] = ConvertPositionUnitToDegree(presentPositionRaw
-			, dynamixelPropertyVector[i].positionOffset
-			, dynamixelPropertyVector[i].positionResolution);
-	}
-	uart->Unlock();
-
-	if (error)
-		return API_ERROR;
 	return API_SUCCESS;
 }
 
