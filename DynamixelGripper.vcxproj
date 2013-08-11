@@ -75,7 +75,6 @@
     <ClInclude Include="Communication\SerialImpl.h" />
     <ClInclude Include="Communication\SerialLinux.h" />
     <ClInclude Include="Communication\SerialWindows.h" />
-    <ClInclude Include="DynamicLibraryLoader.h" />
     <ClInclude Include="Dynamixel.h" />
     <ClInclude Include="DynamixelGripper.h" />
     <ClInclude Include="DynamixelGroup.h" />

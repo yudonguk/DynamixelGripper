@@ -8,7 +8,6 @@
 #include <boost/smart_ptr.hpp>
 #include <boost/thread.hpp>
 
-#include "DynamicLibraryLoader.h"
 #include "DynamixelUART.h"
 #include "DynamixelGroup.h"
 
