@@ -14,8 +14,8 @@ private:
 	unsigned char id;
 	unsigned char Checksum(unsigned char *buf, int dataSize);
 
-	int SendPacket (unsigned char *data, int dataSize);
-	int ReceivePacket (unsigned char *data, int dataSize);
+	virtual int SendPacket (unsigned char *data, int dataSize);
+	virtual int ReceivePacket (unsigned char *data, int dataSize);
 	void DumpPacket (unsigned char *packet, int packetSize);
 	bool Transaction (unsigned char *sendPacket, int sendPacketSize);
 	bool Transaction (unsigned char *sendPacket, int sendPacketSize, unsigned char *receivePacket, int receivePacketSize);

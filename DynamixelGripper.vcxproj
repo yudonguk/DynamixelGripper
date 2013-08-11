@@ -71,6 +71,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="DummyDynamixelUART.h" />
     <ClInclude Include="DynamicLibraryLoader.h" />
     <ClInclude Include="Dynamixel.h" />
     <ClInclude Include="DynamixelGripper.h" />
@@ -80,6 +81,7 @@
     <ClInclude Include="MessageQueue.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="DummyDynamixelUart.cpp" />
     <ClCompile Include="Dynamixel.cpp" />
     <ClCompile Include="DynamixelGripper.cpp" />
     <ClCompile Include="DynamixelGroup.cpp" />
