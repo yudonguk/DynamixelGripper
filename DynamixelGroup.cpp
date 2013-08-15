@@ -100,6 +100,7 @@ size_t DynamixelGroup::GetPresentPosition( std::vector<unsigned short>& currentP
 		if(dynamixelVector[i]->id == DummyDynamixelUart::DUMMY_ID)
 		{
 			currentPosition[i] = 0;
+			result |= 1 << i;
 			continue;
 		}
 
