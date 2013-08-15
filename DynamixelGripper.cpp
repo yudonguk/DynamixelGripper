@@ -25,7 +25,7 @@ int DynamixelGripper::Initialize( Property parameter )
 		return API_ERROR;
 	}
 
-	mJointPosition.resize(dynamixelGroup.CountDynamixel());
+	mJointPosition.resize(dynamixelGroup.size());
 
 	_status = DEVICE_READY;
 	return API_SUCCESS;
@@ -36,7 +36,7 @@ int DynamixelGripper::Finalize()
 	if (_status == DEVICE_ACTIVE)
 		Disable();
 
-	dynamixelGroup.Clear();
+	dynamixelGroup.clear();
 
 	if(uart != NULL)
 	{
@@ -62,17 +62,17 @@ int DynamixelGripper::Enable()
 	}
 
 	bool error = false;
-	const size_t dynamixelCount = dynamixelGroup.CountDynamixel();
+	const size_t dynamixelCount = dynamixelGroup.size();
 	for (size_t i = 0; i < dynamixelCount; i++)
 	{	
 		//다이나믹셀 초기 설정
-		if (EnableDynamixel(dynamixelGroup[i], dynamixelPropertyVector[i]) == false)
+		if (EnableDynamixel(*dynamixelGroup[i], dynamixelPropertyVector[i]) == false)
 		{
 			error = true;
 		}
 	}
 
-	if (EnableDynamixel(dynamixelGroup[dynamixelCount - 1], gripperProperty) == false)
+	if (EnableDynamixel(**dynamixelGroup.rbegin(), gripperProperty) == false)
 	{
 		error = true;
 	}
@@ -110,15 +110,15 @@ int DynamixelGripper::Disable()
 	}
 
 	bool error = false;
-	const size_t dynamixelCount = dynamixelGroup.CountDynamixel();
+	const size_t dynamixelCount = dynamixelGroup.size();
 	for (size_t i = 0; i < dynamixelCount; i++)
 	{
-		if(dynamixelGroup[i].SetTorqueEnable(0) == false)
+		if(dynamixelGroup[i]->SetTorqueEnable(0) == false)
 		{
 			PrintMessage("Error : DynamixelManipulator::Disable()->Can't disable Torque[%d]<< %s(%d)\r\n", i, __FILE__, __LINE__);
 			error = true;
 		}
-		else if (dynamixelGroup[i].SetLED(0) == false)
+		else if (dynamixelGroup[i]->SetLED(0) == false)
 		{
 			PrintMessage("Error : DynamixelManipulator::Disable()->Can't disable LED[%d]<< %s(%d)\r\n", i, __FILE__, __LINE__);
 			error = true;
@@ -157,7 +157,7 @@ bool DynamixelGripper::Setting( Property& parameter)
 	}
 
 	dynamixelPropertyVector.clear();
-	dynamixelGroup.Clear();
+	dynamixelGroup.clear();
 	dynamixelGroup.SetUart(uart);
 
 	if (parameter.FindName("Size") == false)
@@ -277,9 +277,9 @@ bool DynamixelGripper::Setting( Property& parameter)
 		PrintMessage("\r\n");
 
 		if(dynamixelProperty.id == DummyDynamixelUart::DUMMY_ID)
-			dynamixelGroup.Add(new DummyDynamixelUart());
+			dynamixelGroup.push_back(boost::make_shared<DummyDynamixelUart>());
 		else
-			dynamixelGroup.Add(new DynamixelUART(uart, dynamixelProperty.id));
+			dynamixelGroup.push_back(boost::make_shared<DynamixelUART>(uart, dynamixelProperty.id));
 
 		dynamixelPropertyVector.push_back(dynamixelProperty);
 	}
@@ -391,7 +391,7 @@ bool DynamixelGripper::Setting( Property& parameter)
 
 		gripperProperty = dynamixelProperty;
 
-		dynamixelGroup.Add(new DynamixelUART(uart, gripperProperty.id));
+		dynamixelGroup.push_back(boost::make_shared<DynamixelUART>(uart, gripperProperty.id));
 	}
 
 
@@ -504,7 +504,7 @@ int DynamixelGripper::GetParameter( Property& parameter )
 
 
 	char buff[100] = {0, };
-	const size_t dynamixelCount = dynamixelGroup.CountDynamixel();
+	const size_t dynamixelCount = dynamixelGroup.size();
 	stringstream stringStream;
 
 	for (size_t i = 0;  i < dynamixelCount; i++)
@@ -577,14 +577,14 @@ int DynamixelGripper::OnExecute()
 		return API_ERROR;
 	}
 
-	const size_t dynamixelCount = dynamixelGroup.CountDynamixel();
+	const size_t dynamixelCount = dynamixelGroup.size();
 	std::vector<unsigned short> rawJointPosition;
 	std::vector<double> jointPosition(dynamixelCount);
 	unsigned short rawGripperJointLoad = 0;
 
 	uart->Lock();
 	size_t error = dynamixelGroup.GetPresentPosition(rawJointPosition);
-	bool resultOfGettingGripperLoad = dynamixelGroup[dynamixelCount - 1].GetPresentLoad(rawGripperJointLoad);
+	bool resultOfGettingGripperLoad = (*dynamixelGroup.rbegin())->GetPresentLoad(rawGripperJointLoad);
 	uart->Unlock();
 
 	for (size_t i = 0; i < dynamixelCount; i++)
@@ -626,8 +626,8 @@ int DynamixelGripper::RunHoming()
 	}
 
 	//모든 위치를 0으로 
-	vector<double> position(dynamixelGroup.CountDynamixel());
-	vector<unsigned long> time(dynamixelGroup.CountDynamixel());
+	vector<double> position(dynamixelGroup.size());
+	vector<unsigned long> time(dynamixelGroup.size());
 
 	uart->Lock();
 	if (SetPosition(position,time) != API_SUCCESS)
@@ -698,7 +698,7 @@ int DynamixelGripper::SetPosition( vector<double> position, vector<unsigned long
 		return API_ERROR;
 	}
 
-	if (position.size() != dynamixelGroup.CountDynamixel())
+	if (position.size() != dynamixelGroup.size())
 	{
 		PrintMessage("Error : DynamixelManipulator::SetPosition()->position size must be equal Dynamixel count<< %s(%d)\r\n", __FILE__, __LINE__);
 		return API_ERROR;
@@ -753,7 +753,7 @@ int DynamixelGripper::StartGripping()
 		return API_ERROR;
 	}
 
-	DynamixelUART& gripper = dynamixelGroup[dynamixelGroup.CountDynamixel() - 1];
+	DynamixelUART& gripper = **dynamixelGroup.rbegin();
 
 	uart->Lock();
 	gripper.SetGoalPosition(ConvertPositionUnitToDynamixel(gripperProperty.maximumPositionLimit, gripperProperty.positionOffset, gripperProperty.positionResolution));
@@ -773,7 +773,7 @@ int DynamixelGripper::StopGripping()
 	}
 
 	//gripperMessageQueue.Push(STOP_GRIPPING);
-	DynamixelUART& gripper = dynamixelGroup[dynamixelGroup.CountDynamixel() - 1];
+	DynamixelUART& gripper = **dynamixelGroup.rbegin();
 
 	uart->Lock();
 	gripper.SetGoalPosition(ConvertPositionUnitToDynamixel(gripperProperty.minimumPositionLimit, gripperProperty.positionOffset, gripperProperty.positionResolution));
@@ -854,7 +854,7 @@ void DynamixelGripper::GripperControlThreadHandler()
 							double loadDifference = gripperProperty.maximumLoad - presentLoad;
 							double positionDifference = (gripperProperty.maximumPositionLimit - gripperProperty.minimumPositionLimit) / 7 * (loadDifference / gripperProperty.maximumLoad);
 
-							DynamixelUART& gripper = dynamixelGroup[dynamixelGroup.CountDynamixel() - 1];
+							DynamixelUART& gripper = **dynamixelGroup.rbegin();
 							gripper.SetGoalPosition(ConvertPositionUnitToDynamixel(presentPosition + positionDifference, gripperProperty.positionOffset, gripperProperty.positionResolution));
 						}
 					}
@@ -866,7 +866,7 @@ void DynamixelGripper::GripperControlThreadHandler()
 			case  STOP_GRIPPING:
 				{
 					uart->Lock();
-					DynamixelUART& gripper = dynamixelGroup[dynamixelGroup.CountDynamixel() - 1];
+					DynamixelUART& gripper = **dynamixelGroup.rbegin();
 					gripper.SetGoalPosition(ConvertPositionUnitToDynamixel(gripperProperty.minimumPositionLimit, gripperProperty.positionOffset, gripperProperty.positionResolution));
 					uart->Unlock();
 				}
