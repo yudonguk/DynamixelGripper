@@ -1,4 +1,4 @@
-#include "DynamixelGripper.h"
+﻿#include "DynamixelGripper.h"
 
 #include <device/ServoActuator.h>
 #include <device/OprosPrintMessage.h>
@@ -579,32 +579,47 @@ int DynamixelGripper::OnExecute()
 
 	const size_t dynamixelCount = dynamixelGroup.CountDynamixel();	
 	std::vector<double> jointPosition(dynamixelCount);
+	size_t error = 0;
 
 	uart->Lock();
 
-	bool error = false;
 	for (size_t i = 0; i < dynamixelCount; i++)
 	{
 		unsigned short presentPositionRaw = 0;
-		if (dynamixelGroup[i].GetPresentPosition(presentPositionRaw) == false)
+		if (!dynamixelGroup[i].GetPresentPosition(presentPositionRaw))
 		{
+			error |= 1 << i;
+			continue;
+		}
+				
+		// 다이나믹셀 단위계로 임시 저장
+		jointPosition[i] = presentPositionRaw;
+	}
+
+	uart->Unlock();
+
+	for (size_t i = 0; i < dynamixelCount; i++)
+	{
+		if (error & (1 << i))
+		{
+			mJointPositionMutex.lock_shared();
+
+			// 조인트의 위치를 가져오지 못할 경우, 이전 조인트 위치를 적용한다.
+			jointPosition[i] = mJointPosition[i];
+			
+			mJointPositionMutex.unlock_shared();
+			
 			PrintMessage("Error : DynamixelManipulator::GetPosition()->Can't GetPosition Dynamixel[%d]<< %s(%d)\r\n", i, __FILE__, __LINE__);
-			error = true;
-			break;
+			continue;
 		}
 
-		//convert
-		jointPosition[i] = ConvertPositionUnitToDegree(presentPositionRaw
+		// 단위계 변환
+		jointPosition[i] = ConvertPositionUnitToDegree(jointPosition[i]
 			, dynamixelPropertyVector[i].positionOffset
 			, dynamixelPropertyVector[i].positionResolution);
 	}
-	uart->Unlock();
-
-	if (error)
-		return API_ERROR;
-
+	
 	boost::unique_lock<boost::shared_mutex> lock(mJointPositionMutex);
-
 	mJointPosition = std::move(jointPosition);
 
 	return API_SUCCESS;
