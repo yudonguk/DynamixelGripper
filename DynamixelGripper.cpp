@@ -1,9 +1,9 @@
-﻿ #include "DynamixelGripper.h"
+﻿#include "DynamixelGripper.h"
 
 #include <device/ServoActuator.h>
 #include <device/OprosPrintMessage.h>
 
-#include "Communication/SerialCommunication.h"
+#include "SerialCommunicator.h"
 #include "DynamixelUARTDef.h"
 
 DynamixelGripper::DynamixelGripper()
@@ -44,7 +44,7 @@ int DynamixelGripper::Finalize()
 		delete uart;
 		uart = NULL;
 	}
-	
+
 	_status = DEVICE_CREATED;
 	return API_SUCCESS;
 }
@@ -60,7 +60,7 @@ int DynamixelGripper::Enable()
 		PrintMessage("Error : DynamixelManipulator::Enable()->Precondition not met<< %s(%d)\r\n", __FILE__, __LINE__);
 		return API_ERROR;
 	}
-	
+
 	bool error = false;
 	const size_t dynamixelCount = dynamixelGroup.CountDynamixel();
 	for (size_t i = 0; i < dynamixelCount; i++)
@@ -71,7 +71,7 @@ int DynamixelGripper::Enable()
 			error = true;
 		}
 	}
-		
+
 	if (EnableDynamixel(*gripper, gripperProperty) == false)
 	{
 		error = true;
@@ -143,7 +143,7 @@ bool DynamixelGripper::Setting( Property& parameter)
 		uart = NULL;
 	}
 
-	uart = new SerialCommunication;
+	uart = new SerialCommunicator;
 
 	if(uart->Initialize(parameter) != API_SUCCESS)
 	{
@@ -155,11 +155,11 @@ bool DynamixelGripper::Setting( Property& parameter)
 		PrintMessage("Error : DynamixelManipulator::Setting()->Can't Enable UART<< %s(%d)\r\n", __FILE__, __LINE__);
 		return false;
 	}
-	
+
 	dynamixelPropertyVector.clear();
 	dynamixelGroup.Clear();
 	dynamixelGroup.SetUart(uart);
-	
+
 	if (parameter.FindName("Size") == false)
 	{
 		PrintMessage("Error : DynamixelManipulator::Setting()->Can't find Size<< %s(%d)\r\n", __FILE__, __LINE__);
@@ -176,14 +176,14 @@ bool DynamixelGripper::Setting( Property& parameter)
 	const string MAXIMUM_VELOCITY = "MaximumVelocity";
 	const string MINIMUM_POSITION_LIMIT = "MinimumPositionLimit";
 	const string MAXIMUM_POSITION_LIMIT = "MaximumPositionLimit";
-	
+
 	PrintMessage("\r\nDynamixelGripper Property Setting\r\n");
 
 	char buff[100] = {0, };
 	for (unsigned int i = 0;  i < dynamixelCount; i++)
 	{
 		DynamixelProperty dynamixelProperty;
-			
+
 		//DynamixelID
 		sprintf(buff, "%s%d", DYNAMIXEL_ID.c_str(), i);
 		if (parameter.FindName(buff) == false) 
@@ -193,7 +193,7 @@ bool DynamixelGripper::Setting( Property& parameter)
 		}
 		dynamixelProperty.id = atoi(parameter.GetValue(buff).c_str());
 		PrintMessage("%s : %d \r\n", buff, dynamixelProperty.id);
-		
+
 		//ComplianceMargine
 		sprintf(buff, "%s%d", COMPLIANCE_MARGINE.c_str(), i);
 		if (parameter.FindName(buff) == false) 
@@ -243,7 +243,7 @@ bool DynamixelGripper::Setting( Property& parameter)
 		}
 		dynamixelProperty.maximumPower = atof(parameter.GetValue(buff).c_str());
 		PrintMessage("%s : %lf \r\n", buff, dynamixelProperty.maximumPower);
-		
+
 		//MaximumVelocity
 		sprintf(buff, "%s%d", MAXIMUM_VELOCITY.c_str(), i);
 		if (parameter.FindName(buff) == false) 
@@ -253,7 +253,7 @@ bool DynamixelGripper::Setting( Property& parameter)
 		}
 		dynamixelProperty.maximuVelocity = atof(parameter.GetValue(buff).c_str());
 		PrintMessage("%s : %lf \r\n", buff, dynamixelProperty.maximuVelocity);
-			
+
 		//MinimumPositionLimit
 		sprintf(buff, "%s%d", MINIMUM_POSITION_LIMIT.c_str(), i);
 		if (parameter.FindName(buff) == false) 
@@ -273,7 +273,7 @@ bool DynamixelGripper::Setting( Property& parameter)
 		}
 		dynamixelProperty.maximumPositionLimit = atof(parameter.GetValue(buff).c_str());
 		PrintMessage("%s : %lf \r\n", buff, dynamixelProperty.maximumPositionLimit);
-		
+
 		PrintMessage("\r\n");
 
 		DynamixelUART dynamixel(uart, dynamixelProperty.id);
@@ -470,7 +470,7 @@ bool DynamixelGripper::EnableDynamixel( DynamixelUART& dynamixel, const Dynamixe
 		PrintMessage("Error : DynamixelManipulator::SettingDynamixel()->Can't enable Torque of ID(%d)<< %s(%d)\r\n", property.id, __FILE__, __LINE__);
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -497,7 +497,7 @@ int DynamixelGripper::GetParameter( Property& parameter )
 	const string MAXIMUM_VELOCITY = "MaximumVelocity";
 	const string MINIMUM_POSITION_LIMIT = "MinimumPositionLimit";
 	const string MAXIMUM_POSITION_LIMIT = "MaximumPositionLimit";
-	
+
 
 	char buff[100] = {0, };
 	const size_t dynamixelCount = dynamixelGroup.CountDynamixel();
@@ -561,7 +561,7 @@ int DynamixelGripper::GetParameter( Property& parameter )
 		stringStream << dynamixelProperty.maximumPositionLimit;
 		parameter.SetValue(buff, stringStream.str());
 	}
-	
+
 	return API_SUCCESS;
 }
 
@@ -626,7 +626,7 @@ int DynamixelGripper::EmergencyStop()
 		PrintMessage("Error : DynamixelManipulator::EmergencyStop()->Precondition not met<< %s(%d)\r\n", __FILE__, __LINE__);
 		return API_ERROR;
 	}
-	
+
 	uart->Lock();
 	if (dynamixelGroup.SetTorqueEnable(false) == false)
 	{
@@ -767,7 +767,7 @@ int DynamixelGripper::IsGripped(bool &isGripped)
 
 	unsigned short dynamixelValue = 0;
 	double loadPercent = 0.0;
-	
+
 	if (gripper->GetPresentLoad(dynamixelValue) == false)
 	{
 		PrintMessage("Error : DynamixelManipulator::IsGripped()->Can't GetPresentLoad of Gripper<< %s(%d)\r\n", __FILE__, __LINE__);
@@ -777,14 +777,14 @@ int DynamixelGripper::IsGripped(bool &isGripped)
 	uart->Unlock();
 
 	loadPercent = -ConvertLoadUnitToPercent(dynamixelValue);
-	
+
 	std::cout << loadPercent << std::endl;
 
 	if (loadPercent > gripperProperty.maximumLoad * 0.9)
 	{
 		return 1;
 	}
-	
+
 	return API_SUCCESS;
 }
 
@@ -805,7 +805,7 @@ void DynamixelGripper::GripperControlThreadHandler()
 				{
 					double presentPosition = 1;
 					double presentLoad = 1;
-				
+
 					struct ScopedLock
 					{
 						ScopedLock(Uart* pUart)
@@ -833,7 +833,7 @@ void DynamixelGripper::GripperControlThreadHandler()
 							{
 								presentLoad = -ConvertLoadUnitToPercent(dynamixelValue);
 							}
-							
+
 							if (presentLoad > gripperProperty.maximumLoad * 0.9)
 							{
 								break;
