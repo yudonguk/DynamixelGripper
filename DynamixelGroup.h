@@ -8,6 +8,9 @@
 
 class DynamixelGroup
 {
+private:
+	static const size_t MAX_PAYLOAD_SIZE = 143 - 7;
+
 public:
 	DynamixelGroup(Uart* uart_ = NULL);
 	~DynamixelGroup();

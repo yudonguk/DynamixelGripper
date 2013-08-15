@@ -33,9 +33,12 @@ void DynamixelGroup::Clear()
 
 size_t DynamixelGroup::SetGoalPosition( const vector<unsigned short>& goalPosition )
 {
-	vector<unsigned char> data;
-	data.reserve(3 * goalPosition.size());
+	if (dynamixelVector.size() * 3 > MAX_PAYLOAD_SIZE)
+		return 0;
 
+	unsigned char data[MAX_PAYLOAD_SIZE] = {0, };
+
+	size_t payloadSize = 0;
 	for (size_t i = 0;  i < dynamixelVector.size(); i++)
 	{
 		if(dynamixelVector[i]->id == DummyDynamixelUart::DUMMY_ID)
@@ -43,45 +46,46 @@ size_t DynamixelGroup::SetGoalPosition( const vector<unsigned short>& goalPositi
 
 		unsigned char* pPosition = (unsigned char*)(&goalPosition[i]);
 
-		data.push_back(dynamixelVector[i]->id);
-		data.push_back(pPosition[0]);
-		data.push_back(pPosition[1]);
+		data[payloadSize++] = dynamixelVector[i]->id;
+		data[payloadSize++] = pPosition[0];
+		data[payloadSize++] = pPosition[1];
 	}
+
+	size_t result = 0;
 
 	uart->Lock();
-	if (!broadcastDynamixel.WriteBytes(GOAL_POSITION_W, &data[0], data.size(), 2, true))
-	{
-		uart->Unlock();
-		return 0;
-	}
+	if (broadcastDynamixel.WriteBytes(GOAL_POSITION_W, &data[0], payloadSize, 2, true))
+		result = dynamixelVector.size();
 	uart->Unlock();
 
-	return dynamixelVector.size();
+	return result;
 }
 
 size_t DynamixelGroup::SetTorqueEnable( bool isEnabled )
 {
-	vector<unsigned char> data;
-	data.reserve(2 * dynamixelVector.size());
+	if (dynamixelVector.size() * 2 > MAX_PAYLOAD_SIZE)
+		return 0;
 
+	unsigned char data[MAX_PAYLOAD_SIZE] = {0, };
+
+	size_t payloadSize = 0;
 	for (size_t i = 0;  i < dynamixelVector.size(); i++)
 	{
 		if(dynamixelVector[i]->id == DummyDynamixelUart::DUMMY_ID)
 			continue;
 
-		data.push_back(dynamixelVector[i]->id);
-		data.push_back(isEnabled ? 1 : 0);
+		data[payloadSize++] = dynamixelVector[i]->id;
+		data[payloadSize++] = isEnabled ? 1 : 0;
 	}
+
+	size_t result = 0;
 
 	uart->Lock();
-	if (!broadcastDynamixel.WriteBytes(TORQUE_EABLE, &data[0], data.size(), 1, true))
-	{
-		uart->Unlock();
-		return 0;
-	}
+	if (broadcastDynamixel.WriteBytes(TORQUE_EABLE, &data[0], payloadSize, 1, true))
+		result = dynamixelVector.size();
 	uart->Unlock();
 
-	return dynamixelVector.size();
+	return result;
 }
 
 size_t DynamixelGroup::GetPresentPosition( std::vector<unsigned short>& currentPosition )
