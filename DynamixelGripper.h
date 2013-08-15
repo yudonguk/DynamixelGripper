@@ -93,10 +93,10 @@ private:
 	void GripperControlThreadHandler();
 
 private:
+	// dynamixelGroup의 마지막 원소는 그리퍼의 조인트를 가르킨다.
 	DynamixelGroup dynamixelGroup;
 	vector<DynamixelProperty> dynamixelPropertyVector;
 
-	boost::shared_ptr<DynamixelUART> gripper;
 	GripperDynamixelProperty gripperProperty;
 
 	MessageQueue<GripperCommand> gripperMessageQueue;
@@ -106,7 +106,9 @@ private:
 	bool mIsGripped;
 
 	boost::shared_mutex mJointPositionMutex;
+	// mJointPosition의 마지막 원소는 그리퍼 조인트의 위치이다.
 	std::vector<double> mJointPosition;
+	double mGripperJointLoad;
 };
 
 #endif //__DYNAMIXEL_MANIPULATOR_H__
