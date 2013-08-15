@@ -1,4 +1,6 @@
-#include "DynamixelGroup.h"
+﻿#include "DynamixelGroup.h"
+
+#include <limits>
 
 #include "DynamixelUARTDef.h"
 #include "DummyDynamixelUART.h"
@@ -19,21 +21,6 @@ void DynamixelGroup::SetUart( Uart* uart_ )
 	broadcastDynamixel = DynamixelUART(uart, ID_BROADCAST);
 }
 
-void DynamixelGroup::Add( DynamixelUART* pDynamixel )
-{
-	dynamixelVector.push_back(pDynamixel);
-}
-
-size_t DynamixelGroup::CountDynamixel()
-{
-	return dynamixelVector.size();
-}
-
-DynamixelUART& DynamixelGroup::operator[]( size_t index )
-{
-	return *dynamixelVector[index];
-}
-
 void DynamixelGroup::Clear()
 {
 	for (size_t i = 0; i < dynamixelVector.size(); i++)
@@ -44,7 +31,7 @@ void DynamixelGroup::Clear()
 	dynamixelVector.clear();
 }
 
-bool DynamixelGroup::SetGoalPosition( const vector<unsigned short>& goalPosition )
+size_t DynamixelGroup::SetGoalPosition( const vector<unsigned short>& goalPosition )
 {
 	vector<unsigned char> data;
 	data.reserve(3 * goalPosition.size());
@@ -61,10 +48,18 @@ bool DynamixelGroup::SetGoalPosition( const vector<unsigned short>& goalPosition
 		data.push_back(pPosition[1]);
 	}
 
-	return broadcastDynamixel.WriteBytes(GOAL_POSITION_W, &data[0], data.size(), 2, true);
+	uart->Lock();
+	if (!broadcastDynamixel.WriteBytes(GOAL_POSITION_W, &data[0], data.size(), 2, true))
+	{
+		uart->Unlock();
+		return 0;
+	}
+	uart->Unlock();
+
+	return dynamixelVector.size();
 }
 
-bool DynamixelGroup::SetTorqueEnable( bool isEnabled )
+size_t DynamixelGroup::SetTorqueEnable( bool isEnabled )
 {
 	vector<unsigned char> data;
 	data.reserve(2 * dynamixelVector.size());
@@ -78,5 +73,39 @@ bool DynamixelGroup::SetTorqueEnable( bool isEnabled )
 		data.push_back(isEnabled ? 1 : 0);
 	}
 
-	return broadcastDynamixel.WriteBytes(GOAL_POSITION_W, &data[0], data.size(), 1, true);
+	uart->Lock();
+	if (!broadcastDynamixel.WriteBytes(TORQUE_EABLE, &data[0], data.size(), 1, true))
+	{
+		uart->Unlock();
+		return 0;
+	}
+	uart->Unlock();
+
+	return dynamixelVector.size();
+}
+
+size_t DynamixelGroup::GetPresentPosition( std::vector<unsigned short>& currentPosition )
+{
+	currentPosition.resize(dynamixelVector.size());
+
+	size_t result = 0;
+
+	uart->Lock();
+	for (size_t i = 0; i < dynamixelVector.size(); i++)
+	{
+		if(dynamixelVector[i]->id == DummyDynamixelUart::DUMMY_ID)
+		{
+			currentPosition[i] = 0;
+			continue;
+		}
+
+		unsigned short presentPositionRaw = 0;
+		if (dynamixelVector[i]->GetPresentPosition(presentPositionRaw))
+			result |= 1 << i;
+
+		currentPosition[i] = presentPositionRaw;
+	}
+	uart->Unlock();
+
+	return result;
 }

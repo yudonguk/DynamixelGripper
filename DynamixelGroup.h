@@ -1,4 +1,4 @@
-#ifndef __DYNAMIXEL_GROUP_H__
+﻿#ifndef __DYNAMIXEL_GROUP_H__
 #define __DYNAMIXEL_GROUP_H__
 
 #include <vector>
@@ -14,14 +14,16 @@ public:
 
 public:
 	void SetUart(Uart* uart_);
-	void Add(DynamixelUART* pDynamixel);
-	size_t CountDynamixel();
+	inline void Add(DynamixelUART* pDynamixel) { dynamixelVector.push_back(pDynamixel); }
+	inline size_t CountDynamixel() { return dynamixelVector.size(); }
 	void Clear();
 
-	bool SetGoalPosition(const vector<unsigned short>& goalPosition);
-	bool SetTorqueEnable(bool isEnabled);
-	
-	DynamixelUART& operator[](size_t index);
+	size_t SetGoalPosition(const vector<unsigned short>& goalPosition);
+	size_t SetTorqueEnable(bool isEnabled);
+
+	size_t GetPresentPosition(std::vector<unsigned short>& currentPosition);
+
+	inline DynamixelUART& operator[](size_t index) { return *dynamixelVector[index]; }
 
 private:
 	DynamixelUART broadcastDynamixel;
