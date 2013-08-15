@@ -577,26 +577,11 @@ int DynamixelGripper::OnExecute()
 		return API_ERROR;
 	}
 
-	const size_t dynamixelCount = dynamixelGroup.CountDynamixel();	
+	const size_t dynamixelCount = dynamixelGroup.CountDynamixel();
+	std::vector<unsigned short> rawJointPosition;
 	std::vector<double> jointPosition(dynamixelCount);
-	size_t error = 0;
-
-	uart->Lock();
-
-	for (size_t i = 0; i < dynamixelCount; i++)
-	{
-		unsigned short presentPositionRaw = 0;
-		if (!dynamixelGroup[i].GetPresentPosition(presentPositionRaw))
-		{
-			error |= 1 << i;
-			continue;
-		}
-				
-		// 다이나믹셀 단위계로 임시 저장
-		jointPosition[i] = presentPositionRaw;
-	}
-
-	uart->Unlock();
+		
+	size_t error = dynamixelGroup.GetPresentPosition(rawJointPosition);
 
 	for (size_t i = 0; i < dynamixelCount; i++)
 	{
@@ -614,7 +599,7 @@ int DynamixelGripper::OnExecute()
 		}
 
 		// 단위계 변환
-		jointPosition[i] = ConvertPositionUnitToDegree(jointPosition[i]
+		jointPosition[i] = ConvertPositionUnitToDegree(rawJointPosition[i]
 			, dynamixelPropertyVector[i].positionOffset
 			, dynamixelPropertyVector[i].positionResolution);
 	}
