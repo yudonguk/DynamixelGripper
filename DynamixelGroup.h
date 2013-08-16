@@ -1,4 +1,4 @@
-#ifndef __DYNAMIXEL_GROUP_H__
+﻿#ifndef __DYNAMIXEL_GROUP_H__
 #define __DYNAMIXEL_GROUP_H__
 
 #include <vector>

@@ -1,4 +1,4 @@
-#ifndef __MESSAGE_QUEUE_H_
+﻿#ifndef __MESSAGE_QUEUE_H_
 #define __MESSAGE_QUEUE_H_
 
 #include <boost/thread/mutex.hpp>

@@ -1,4 +1,4 @@
-#ifndef __DYNAMIXEL_MANIPULATOR_H__
+﻿#ifndef __DYNAMIXEL_MANIPULATOR_H__
 #define __DYNAMIXEL_MANIPULATOR_H__
 
 #include <device/Manipulator.h>

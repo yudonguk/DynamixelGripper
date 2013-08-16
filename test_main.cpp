@@ -1,4 +1,4 @@
-#ifndef _WINDLL
+﻿#ifndef _WINDLL
 
 #include <iostream>
 #include <iomanip>

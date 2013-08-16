@@ -1,4 +1,4 @@
-#ifndef __DYNAMIXEL_H__
+﻿#ifndef __DYNAMIXEL_H__
 #define __DYNAMIXEL_H__
 
 #include <device/ServoActuator.h>

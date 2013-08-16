@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 
 #define	INSTRUCTION_ERROR	0x40	//정의되지 않은 Instruction이 전송된 경우. 또는 reg_write 명령없이 action명령이 전달된 경우 1로 설정됨
