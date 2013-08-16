@@ -1,14 +1,19 @@
 ﻿#include "DynamixelGripper.h"
 
-#include <device/ServoActuator.h>
+#include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
+#include <boost/thread/locks.hpp>
+#include <boost/bind.hpp>
+
 #include <device/OprosPrintMessage.h>
+#include <OPRoSTypes.h>
 
 #include "SerialCommunicator.h"
 #include "DynamixelUARTDef.h"
 #include "DummyDynamixelUART.h"
 
 DynamixelGripper::DynamixelGripper()
-	: uart(NULL), gripperControlThread(NULL), mIsGripped(false)
+	: uart(NULL), mIsGripped(false)
 {}
 
 DynamixelGripper::~DynamixelGripper()
@@ -26,6 +31,7 @@ int DynamixelGripper::Initialize( Property parameter )
 	}
 
 	mJointPosition.resize(dynamixelGroup.size());
+	mDesiredJointPosition.resize(dynamixelGroup.size());
 
 	_status = DEVICE_READY;
 	return API_SUCCESS;
@@ -82,9 +88,7 @@ int DynamixelGripper::Enable()
 		_status = DEVICE_ERROR;
 		return API_ERROR;
 	}
-
-	gripperControlThread = new boost::thread(boost::bind(&DynamixelGripper::GripperControlThreadHandler, this));
-
+	
 	_status = DEVICE_ACTIVE;
 	return API_SUCCESS;
 }
@@ -100,15 +104,7 @@ int DynamixelGripper::Disable()
 		PrintMessage("Error : DynamixelManipulator::Disable()->Precondition not met<< %s(%d)\r\n", __FILE__, __LINE__);
 		return API_ERROR;
 	}
-
-	if (gripperControlThread != NULL)
-	{
-		gripperControlThread->interrupt();
-		gripperControlThread->timed_join(boost::posix_time::millisec(100));
-		delete gripperControlThread;
-		gripperControlThread = NULL;
-	}
-
+	
 	bool error = false;
 	const size_t dynamixelCount = dynamixelGroup.size();
 	for (size_t i = 0; i < dynamixelCount; i++)
@@ -578,6 +574,7 @@ int DynamixelGripper::OnExecute()
 	}
 
 	UpdateJointState();
+	ControlJoint();
 
 	return API_SUCCESS;
 }
@@ -769,81 +766,6 @@ int DynamixelGripper::IsGripped(bool &isGripped)
 	return API_SUCCESS;
 }
 
-void DynamixelGripper::GripperControlThreadHandler()
-{
-	return;
-
-	try
-	{
-		GripperCommand command;
-		for (;;)
-		{	
-			command = gripperMessageQueue.Pop();
-
-			switch(command)
-			{
-			case START_GRIPPING:
-				{
-					double presentPosition = 1;
-					double presentLoad = 1;
-
-					struct ScopedLock
-					{
-						ScopedLock(Uart* pUart)
-							: mpUart(pUart)
-						{mpUart->Lock();}
-
-						~ScopedLock(){mpUart->Unlock();}
-
-						Uart* mpUart;
-					};
-
-					try
-					{
-						for(;; boost::this_thread::sleep(boost::posix_time::millisec(100)))
-						{
-							boost::shared_lock<boost::shared_mutex> lock(mJointPositionMutex);
-
-							mJointPositionMutex.lock_shared();
-
-							double presentLoad = mGripperJointLoad;
-							double presentPosition = *mJointPosition.rbegin();
-
-							mJointPositionMutex.unlock_shared();
-
-							if (presentLoad > gripperProperty.maximumLoad * 0.9)
-							{
-								break;
-							}
-
-							double loadDifference = gripperProperty.maximumLoad - presentLoad;
-							double positionDifference = (gripperProperty.maximumPositionLimit - gripperProperty.minimumPositionLimit) / 7 * (loadDifference / gripperProperty.maximumLoad);
-
-							DynamixelUART& gripper = **dynamixelGroup.rbegin();
-							gripper.SetGoalPosition(ConvertPositionUnitToDynamixel(presentPosition + positionDifference, gripperProperty.positionOffset, gripperProperty.positionResolution));
-						}
-					}
-					catch(...)
-					{
-					}
-				}
-				break;
-			case  STOP_GRIPPING:
-				{
-					uart->Lock();
-					DynamixelUART& gripper = **dynamixelGroup.rbegin();
-					gripper.SetGoalPosition(ConvertPositionUnitToDynamixel(gripperProperty.minimumPositionLimit, gripperProperty.positionOffset, gripperProperty.positionResolution));
-					uart->Unlock();
-				}
-				break;
-			}
-		}
-	}
-	catch(boost::thread_interrupted&)
-	{
-	}
-}
-
 unsigned short DynamixelGripper::ConvertPowerUnitToDynamixel( const double& percent)
 {
 	opros_assert(!(percent < 0.00 || percent > 100.0));
@@ -928,6 +850,45 @@ void DynamixelGripper::UpdateJointState()
 	// 그리퍼 조인트의 하중을 얻어왔을 경우에만 갱신
 	if(resultOfGettingGripperLoad)
 		mGripperJointLoad = -ConvertLoadUnitToPercent(rawGripperJointLoad);
+}
+
+void DynamixelGripper::ControlJoint()
+{
+	boost::upgrade_lock<boost::shared_mutex> upgradeLock(mJointPositionMutex);
+	
+	// 그리퍼 제어
+	if (mGripperCommand == START_GRIPPING)
+	{
+		const double loadDifference = gripperProperty.maximumLoad - mGripperJointLoad;
+		const double positionDifference = (gripperProperty.maximumPositionLimit - gripperProperty.minimumPositionLimit) / 7 * (loadDifference / gripperProperty.maximumLoad);
+		
+		boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(upgradeLock);
+		*mDesiredJointPosition.rbegin() += *mJointPosition.rbegin() + positionDifference;
+	}
+	else
+	{
+		boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(upgradeLock);
+		*mDesiredJointPosition.rbegin() = gripperProperty.minimumPositionLimit;
+	}	
+
+	//단위 변환
+	vector<unsigned short> rawJointPosition(mDesiredJointPosition.size());
+	for (size_t i = 0;  i < rawJointPosition.size(); i++)
+	{
+		rawJointPosition[i] = ConvertPositionUnitToDynamixel(mDesiredJointPosition[i]
+		, dynamixelPropertyVector[i].positionOffset
+			, dynamixelPropertyVector[i].positionResolution);
+	}
+
+	upgradeLock.unlock();
+
+	// 조인트 위치 설정
+	uart->Lock();
+	if (!dynamixelGroup.SetGoalPosition(rawJointPosition))
+	{
+		PrintMessage("Error : DynamixelManipulator::ControlJoint()->Can't SetPosition Dynamixel<< %s(%d)\r\n", __FILE__, __LINE__);
+	}
+	uart->Unlock();
 }
 
 #ifdef WIN32
