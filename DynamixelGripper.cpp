@@ -660,7 +660,7 @@ int DynamixelGripper::SetPosition( vector<double> position, vector<unsigned long
 		return API_ERROR;
 	}
 
-	if (position.size() != dynamixelGroup.size())
+	if (position.size() != dynamixelGroup.size() - 1)
 	{
 		PrintMessage("Error : DynamixelManipulator::SetPosition()->position size must be equal Dynamixel count<< %s(%d)\r\n", __FILE__, __LINE__);
 		return API_ERROR;
@@ -672,21 +672,9 @@ int DynamixelGripper::SetPosition( vector<double> position, vector<unsigned long
 		return API_ERROR;
 	}
 
-	//단위 변환
-	vector<unsigned short> dynamixelPositon(position.size());
-	for (size_t i = 0;  i < dynamixelPositon.size(); i++)
-	{
-		dynamixelPositon[i] = ConvertPositionUnitToDynamixel(position[i], dynamixelPropertyVector[i].positionOffset, dynamixelPropertyVector[i].positionResolution);
-	}
+	boost::unique_lock<boost::shared_mutex> lock(mJointPositionMutex);
 
-	uart->Lock();
-	if (dynamixelGroup.SetGoalPosition(dynamixelPositon) == false)
-	{
-		PrintMessage("Error : DynamixelManipulator::SetPosition()->Can't SetPosition Dynamixel<< %s(%d)\r\n", __FILE__, __LINE__);
-		uart->Unlock();
-		return API_ERROR;
-	}
-	uart->Unlock();
+	std::copy(position.begin(), position.end(), mDesiredJointPosition.begin());
 
 	return API_SUCCESS;
 }
