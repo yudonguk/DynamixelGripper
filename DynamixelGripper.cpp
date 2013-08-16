@@ -588,17 +588,15 @@ int DynamixelGripper::RunHoming()
 	}
 
 	//모든 위치를 0으로 
-	vector<double> position(dynamixelGroup.size());
-	vector<unsigned long> time(dynamixelGroup.size());
+	std::vector<double> position(dynamixelGroup.size() - 1);
+	std::vector<unsigned long> time(position.size());
 
-	uart->Lock();
 	if (SetPosition(position,time) != API_SUCCESS)
 	{
 		PrintMessage("Error : DynamixelManipulator::StartHoming()->Can't StartHoming Dynamixel<< %s(%d)\r\n", __FILE__, __LINE__);
-		uart->Unlock();
 		return API_ERROR;
 	}
-	uart->Unlock();
+	
 	return API_SUCCESS;
 }
 
@@ -610,26 +608,21 @@ int DynamixelGripper::Stop()
 		return API_ERROR;
 	}
 
-	vector<double> position;
-	vector<unsigned long> time;
+	std::vector<double> position;
 
-	uart->Lock();
 	if (GetPosition(position) != API_SUCCESS)
 	{
 		PrintMessage("Error : DynamixelManipulator::Stop()->Can't Stop Dynamixel.<< %s(%d)\r\n", __FILE__, __LINE__);
-		uart->Unlock();
 		return API_ERROR;
 	}
-
-	time.resize(position.size());
+	
+	std::vector<unsigned long> time(position.size());
 
 	if (SetPosition(position, time) != API_SUCCESS)
 	{
 		PrintMessage("Error : DynamixelManipulator::Stop()->Can't Stop Dynamixel.<< %s(%d)\r\n", __FILE__, __LINE__);
-		uart->Unlock();
 		return API_ERROR;
 	}
-	uart->Unlock();
 	return API_SUCCESS;
 }
 
