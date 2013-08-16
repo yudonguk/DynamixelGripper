@@ -501,10 +501,9 @@ int DynamixelGripper::GetParameter( Property& parameter )
 	const string MAXIMUM_VELOCITY = "MaximumVelocity";
 	const string MINIMUM_POSITION_LIMIT = "MinimumPositionLimit";
 	const string MAXIMUM_POSITION_LIMIT = "MaximumPositionLimit";
-
-
+	
 	char buff[100] = {0, };
-	const size_t dynamixelCount = dynamixelGroup.size();
+	const size_t dynamixelCount = dynamixelPropertyVector.size();
 	stringstream stringStream;
 
 	for (size_t i = 0;  i < dynamixelCount; i++)
@@ -563,6 +562,68 @@ int DynamixelGripper::GetParameter( Property& parameter )
 		sprintf(buff, "%s%d", MAXIMUM_POSITION_LIMIT.c_str(), i);
 		stringStream.str("");
 		stringStream << dynamixelProperty.maximumPositionLimit;
+		parameter.SetValue(buff, stringStream.str());
+	}
+
+	{
+		//DynamixelID
+		sprintf(buff, "Gripper%s", DYNAMIXEL_ID.c_str());
+		stringStream.str("");
+		stringStream << gripperProperty.id;
+		parameter.SetValue(buff, stringStream.str());
+
+		//ComplianceMargine
+		sprintf(buff, "Gripper%s", COMPLIANCE_MARGINE.c_str());
+		stringStream.str("");
+		stringStream << gripperProperty.complianceMargine;
+		parameter.SetValue(buff, stringStream.str());
+
+		//ComplianceSlope
+		sprintf(buff, "Gripper%s", COMPLIANCE_SLOPE.c_str());
+		stringStream.str("");
+		stringStream << gripperProperty.compliacneSlope;
+		parameter.SetValue(buff, stringStream.str());
+
+		//PositionResolution
+		sprintf(buff, "Gripper%s", POSITION_RESOLUTION.c_str());
+		stringStream.str("");
+		stringStream << gripperProperty.positionResolution;
+		parameter.SetValue(buff, stringStream.str());
+
+		//PositionOffset
+		sprintf(buff, "Gripper%s", POSITION_OFFSET.c_str());
+		stringStream.str("");
+		stringStream << gripperProperty.positionOffset;
+		parameter.SetValue(buff, stringStream.str());
+
+		//MaximumPower
+		sprintf(buff, "Gripper%s", MAXIMUM_POWER.c_str());
+		stringStream.str("");
+		stringStream << gripperProperty.maximumPower;
+		parameter.SetValue(buff, stringStream.str());
+
+		//MaximumVelocity
+		sprintf(buff, "Gripper%s", MAXIMUM_VELOCITY.c_str());
+		stringStream.str("");
+		stringStream << gripperProperty.maximuVelocity;
+		parameter.SetValue(buff, stringStream.str());
+
+		//MinimumPositionLimit
+		sprintf(buff, "Gripper%s", MINIMUM_POSITION_LIMIT.c_str());
+		stringStream.str("");
+		stringStream << gripperProperty.minimumPositionLimit;
+		parameter.SetValue(buff, stringStream.str());
+
+		//MaximumPositionLimit
+		sprintf(buff, "Gripper%s", MAXIMUM_POSITION_LIMIT.c_str());
+		stringStream.str("");
+		stringStream << gripperProperty.maximumPositionLimit;
+		parameter.SetValue(buff, stringStream.str());	
+
+		//MaximumLoad
+		sprintf(buff, "GripperMaximumLoad");
+		stringStream.str("");
+		stringStream << gripperProperty.maximumLoad;
 		parameter.SetValue(buff, stringStream.str());
 	}
 
