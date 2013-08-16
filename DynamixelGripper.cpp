@@ -739,8 +739,10 @@ int DynamixelGripper::GetPosition( vector<double> &position )
 
 	boost::shared_lock<boost::shared_mutex> lock(mJointPositionMutex);
 
-	position.resize(mJointPosition.size());
-	position = mJointPosition;
+	// mJointPosition의 마지막 원소는 그리퍼 조인트의 위치 이므로,
+	// GetPosition() 에서는 그리퍼 조인트의 위치를 반환하지 않는다.
+	position.resize(mJointPosition.size() - 1);
+	std::copy(mJointPosition.begin(), mJointPosition.end() - 1, position.begin());
 
 	return API_SUCCESS;
 }
