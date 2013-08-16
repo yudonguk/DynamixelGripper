@@ -71,6 +71,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="DummyDynamixelUART.h" />
     <ClInclude Include="Dynamixel.h" />
     <ClInclude Include="DynamixelGripper.h" />
     <ClInclude Include="DynamixelGroup.h" />
@@ -80,6 +81,7 @@
     <ClInclude Include="SerialCommunicator.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="DummyDynamixelUart.cpp" />
     <ClCompile Include="Dynamixel.cpp" />
     <ClCompile Include="DynamixelGripper.cpp" />
     <ClCompile Include="DynamixelGroup.cpp" />

@@ -41,7 +41,7 @@ protected:
 		double minimumPositionLimit;
 		double maximumPositionLimit;
 	};
-	
+
 	struct GripperDynamixelProperty : public DynamixelProperty
 	{
 		GripperDynamixelProperty()
@@ -62,6 +62,7 @@ public:
 	virtual int Disable();
 	virtual int SetParameter(Property parameter);
 	virtual int GetParameter(Property &parameter);
+	virtual int OnExecute();
 
 public:
 	virtual int RunHoming();
@@ -78,7 +79,7 @@ public:
 private:
 	bool Setting(Property& parameter);
 	bool EnableDynamixel(DynamixelUART& dynamixel, const DynamixelProperty& property);
-	
+
 	inline unsigned short ConvertPowerUnitToDynamixel(const double& percent);
 	inline unsigned short ConvertPositionUnitToDynamixel(const double& degree, const double& offset, const double& resolution);
 	inline unsigned short ConvertVelocityUnitToDynamixel(const double& rpm);
@@ -92,20 +93,22 @@ private:
 	void GripperControlThreadHandler();
 
 private:
+	// dynamixelGroup의 마지막 원소는 그리퍼의 조인트를 가르킨다.
 	DynamixelGroup dynamixelGroup;
 	vector<DynamixelProperty> dynamixelPropertyVector;
 
-	boost::shared_ptr<DynamixelUART> gripper;
 	GripperDynamixelProperty gripperProperty;
-	
+
 	MessageQueue<GripperCommand> gripperMessageQueue;
 	boost::thread* gripperControlThread;
 
 	Uart* uart;
 	bool mIsGripped;
-	vector<double> previousPosition;
+
+	boost::shared_mutex mJointPositionMutex;
+	// mJointPosition의 마지막 원소는 그리퍼 조인트의 위치이다.
+	std::vector<double> mJointPosition;
+	double mGripperJointLoad;
 };
 
 #endif //__DYNAMIXEL_MANIPULATOR_H__
-
-
