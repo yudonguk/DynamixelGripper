@@ -91,6 +91,7 @@ private:
 
 private:
 	void GripperControlThreadHandler();
+	void UpdateJointState();
 
 private:
 	// dynamixelGroup의 마지막 원소는 그리퍼의 조인트를 가르킨다.

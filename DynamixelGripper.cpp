@@ -577,42 +577,7 @@ int DynamixelGripper::OnExecute()
 		return API_ERROR;
 	}
 
-	const size_t dynamixelCount = dynamixelGroup.size();
-	std::vector<unsigned short> rawJointPosition;
-	std::vector<double> jointPosition(dynamixelCount);
-	unsigned short rawGripperJointLoad = 0;
-
-	uart->Lock();
-	size_t error = dynamixelGroup.GetPresentPosition(rawJointPosition);
-	bool resultOfGettingGripperLoad = (*dynamixelGroup.rbegin())->GetPresentLoad(rawGripperJointLoad);
-	uart->Unlock();
-
-	for (size_t i = 0; i < dynamixelCount; i++)
-	{
-		if (error & (1 << i))
-		{
-			mJointPositionMutex.lock_shared();
-
-			// 조인트의 위치를 가져오지 못할 경우, 이전 조인트 위치를 적용한다.
-			jointPosition[i] = mJointPosition[i];
-
-			mJointPositionMutex.unlock_shared();
-
-			PrintMessage("Error : DynamixelManipulator::GetPosition()->Can't GetPosition Dynamixel[%d]<< %s(%d)\r\n", i, __FILE__, __LINE__);
-			continue;
-		}
-
-		// 단위계 변환
-		jointPosition[i] = ConvertPositionUnitToDegree(rawJointPosition[i]
-		, dynamixelPropertyVector[i].positionOffset
-			, dynamixelPropertyVector[i].positionResolution);
-	}
-
-	boost::unique_lock<boost::shared_mutex> lock(mJointPositionMutex);
-	mJointPosition = std::move(jointPosition);
-	// 그리퍼 조인트의 하중을 얻어왔을 경우에만 갱신
-	if(resultOfGettingGripperLoad)
-		mGripperJointLoad = -ConvertLoadUnitToPercent(rawGripperJointLoad);
+	UpdateJointState();
 
 	return API_SUCCESS;
 }
@@ -922,6 +887,47 @@ double DynamixelGripper::ConvertLoadUnitToPercent( unsigned short dynamixelValue
 	opros_assert(!(dynamixelValue < 0 || dynamixelValue > 2047));
 	double percent = (dynamixelValue & 0x3FF) * 0.1 * (dynamixelValue & 0x400 ? -1 : 1);
 	return percent;
+}
+
+
+void DynamixelGripper::UpdateJointState()
+{
+	const size_t dynamixelCount = dynamixelGroup.size();
+	std::vector<unsigned short> rawJointPosition;
+	std::vector<double> jointPosition(dynamixelCount);
+	unsigned short rawGripperJointLoad = 0;
+
+	uart->Lock();
+	size_t error = dynamixelGroup.GetPresentPosition(rawJointPosition);
+	bool resultOfGettingGripperLoad = (*dynamixelGroup.rbegin())->GetPresentLoad(rawGripperJointLoad);
+	uart->Unlock();
+
+	for (size_t i = 0; i < dynamixelCount; i++)
+	{
+		if (error & (1 << i))
+		{
+			mJointPositionMutex.lock_shared();
+
+			// 조인트의 위치를 가져오지 못할 경우, 이전 조인트 위치를 적용한다.
+			jointPosition[i] = mJointPosition[i];
+
+			mJointPositionMutex.unlock_shared();
+
+			PrintMessage("Error : DynamixelManipulator::GetPosition()->Can't GetPosition Dynamixel[%d]<< %s(%d)\r\n", i, __FILE__, __LINE__);
+			continue;
+		}
+
+		// 단위계 변환
+		jointPosition[i] = ConvertPositionUnitToDegree(rawJointPosition[i]
+		, dynamixelPropertyVector[i].positionOffset
+			, dynamixelPropertyVector[i].positionResolution);
+	}
+
+	boost::unique_lock<boost::shared_mutex> lock(mJointPositionMutex);
+	mJointPosition = std::move(jointPosition);
+	// 그리퍼 조인트의 하중을 얻어왔을 경우에만 갱신
+	if(resultOfGettingGripperLoad)
+		mGripperJointLoad = -ConvertLoadUnitToPercent(rawGripperJointLoad);
 }
 
 #ifdef WIN32
