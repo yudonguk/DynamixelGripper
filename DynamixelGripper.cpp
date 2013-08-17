@@ -624,7 +624,7 @@ int DynamixelGripper::GetParameter( Property& parameter )
 		GripperDynamixelProperty& property 
 			= static_cast<GripperDynamixelProperty&>(**mDynamixelProperties.rbegin());
 		
-		if (property.id == DummyDynamixelUart::DUMMY_ID)
+		if (property.id != DummyDynamixelUart::DUMMY_ID)
 		{
 			//CounterclockwiseMode
 			sprintf(buff, "Gripper%s", COUNTERCLOCKWISE_MODE);
