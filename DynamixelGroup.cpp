@@ -1,6 +1,7 @@
 ﻿#include "DynamixelGroup.h"
 
 #include <limits>
+#include <algorithm>
 
 #include "DynamixelUARTDef.h"
 #include "DummyDynamixelUART.h"
@@ -22,7 +23,9 @@ void DynamixelGroup::SetUart( Uart* uart_ )
 
 size_t DynamixelGroup::SetGoalPosition( const vector<unsigned short>& goalPosition )
 {
-	if (size() * 3 > MAX_PAYLOAD_SIZE)
+	const size_t dynamixelCount = std::min(goalPosition.size(), size());
+
+	if (dynamixelCount * 3 > MAX_PAYLOAD_SIZE)
 		return 0;
 
 	unsigned char data[MAX_PAYLOAD_SIZE] = {0, };
@@ -30,7 +33,7 @@ size_t DynamixelGroup::SetGoalPosition( const vector<unsigned short>& goalPositi
 	size_t result = 0;
 	size_t payloadSize = 0;
 	
-	for (size_t i = 0;  i < size(); i++)
+	for (size_t i = 0;  i < dynamixelCount; i++)
 	{
 		result |= 1 << i;
 	
