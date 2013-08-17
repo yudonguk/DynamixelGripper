@@ -26,13 +26,17 @@ size_t DynamixelGroup::SetGoalPosition( const vector<unsigned short>& goalPositi
 		return 0;
 
 	unsigned char data[MAX_PAYLOAD_SIZE] = {0, };
-
+	
+	size_t result = 0;
 	size_t payloadSize = 0;
+	
 	for (size_t i = 0;  i < size(); i++)
 	{
+		result |= 1 << i;
+	
 		if(operator[](i)->id == DummyDynamixelUart::DUMMY_ID)
 			continue;
-
+		
 		unsigned char* pPosition = (unsigned char*)(&goalPosition[i]);
 		
 		data[payloadSize++] = operator[](i)->id;
@@ -40,11 +44,9 @@ size_t DynamixelGroup::SetGoalPosition( const vector<unsigned short>& goalPositi
 		data[payloadSize++] = pPosition[1];
 	}
 
-	size_t result = 0;
-
 	uart->Lock();
-	if (broadcastDynamixel.WriteBytes(GOAL_POSITION_W, &data[0], payloadSize, 2, true))
-		result = size();
+	if (!broadcastDynamixel.WriteBytes(GOAL_POSITION_W, &data[0], payloadSize, 2, true))
+		result = 0;
 	uart->Unlock();
 
 	return result;
@@ -57,21 +59,23 @@ size_t DynamixelGroup::SetTorqueEnable( bool isEnabled )
 
 	unsigned char data[MAX_PAYLOAD_SIZE] = {0, };
 
+	size_t result = 0;
 	size_t payloadSize = 0;
+	
 	for (size_t i = 0;  i < size(); i++)
 	{
+		result |= 1 << i;
+
 		if(operator[](i)->id == DummyDynamixelUart::DUMMY_ID)
 			continue;
 
 		data[payloadSize++] = operator[](i)->id;
 		data[payloadSize++] = isEnabled ? 1 : 0;
 	}
-
-	size_t result = 0;
-
+		
 	uart->Lock();
 	if (broadcastDynamixel.WriteBytes(TORQUE_EABLE, &data[0], payloadSize, 1, true))
-		result = size();
+		result = 0;
 	uart->Unlock();
 
 	return result;
@@ -88,7 +92,7 @@ size_t DynamixelGroup::GetPresentPosition( std::vector<unsigned short>& currentP
 	{
 		if(operator[](i)->id == DummyDynamixelUart::DUMMY_ID)
 		{
-			currentPosition[i] = 0;
+			currentPosition[i] = 2048; // 중심 값
 			result |= 1 << i;
 			continue;
 		}
