@@ -2,12 +2,27 @@
 
 #include <algorithm>
 
+#include <boost/lexical_cast.hpp>
+
 #include <device/ServoActuator.h>
 #include <device/OprosPrintMessage.h>
 
 #include "SerialCommunicator.h"
 #include "DynamixelUARTDef.h"
 #include "DummyDynamixelUART.h"
+
+#define JOINT_COUNT				"JointCount"
+#define COUNTERCLOCKWISE_MODE	"CounterclockwiseMode" 
+#define DYNAMIXEL_ID			"DynamixelID"
+#define COMPLIANCE_MARGINE		"ComplianceMargine"
+#define COMPLIANCE_SLOPE		"ComplianceSlope"
+#define POSITION_RESOLUTION		"PositionResolution"
+#define POSITION_OFFSET			"PositionOffset"
+#define MAXIMUM_POWER			"MaximumPower"
+#define MAXIMUM_VELOCITY		"MaximumVelocity"
+#define MINIMUM_POSITION_LIMIT	"MinimumPositionLimit"
+#define MAXIMUM_POSITION_LIMIT	"MaximumPositionLimit"
+#define MAXIMUM_LOAD			"MaximumLoad"
 
 DynamixelGripper::DynamixelGripper()
 	: uart(NULL), gripperControlThread(NULL), mIsGripped(false)
@@ -159,118 +174,107 @@ bool DynamixelGripper::Setting( Property& parameter)
 	mDynamixelGroup.clear();
 	mDynamixelGroup.SetUart(uart);
 
-	if (parameter.FindName("Size") == false)
+	if (parameter.FindName(JOINT_COUNT) == false)
 	{
 		PrintMessage("Error : DynamixelManipulator::Setting()->Can't find Size<< %s(%d)\r\n", __FILE__, __LINE__);
 		return false;
 	}
-	const size_t jointCount = atoi(parameter.GetValue("Size").c_str());
-
-	const string DYNAMIXEL_ID = "DynamixelID";
-	const string COMPLIANCE_MARGINE = "ComplianceMargine";
-	const string COMPLIANCE_SLOPE = "ComplianceSlope";
-	const string POSITION_RESOLUTION = "PositionResolution";
-	const string POSITION_OFFSET = "PositionOffset";
-	const string MAXIMUM_POWER = "MaximumPower";
-	const string MAXIMUM_VELOCITY = "MaximumVelocity";
-	const string MINIMUM_POSITION_LIMIT = "MinimumPositionLimit";
-	const string MAXIMUM_POSITION_LIMIT = "MaximumPositionLimit";
-
+	const size_t jointCount = boost::lexical_cast<size_t>(parameter.GetValue(JOINT_COUNT));
+	
 	PrintMessage("\r\nDynamixelGripper Property Setting\r\n");
 
 	char buff[100] = {0, };
-	for (unsigned int i = 0;  i < jointCount; i++)
+	for (size_t i = 0;  i < jointCount; i++)
 	{
 		boost::shared_ptr<DynamixelProperty> pDynamixelProperty = boost::make_shared<DynamixelProperty>();
 
+		//CounterclockwiseMode
+		sprintf(buff, "%s%d", COUNTERCLOCKWISE_MODE, i);
+		if (parameter.FindName(buff)) 
+			pDynamixelProperty->isCounterclockwiseMode 
+			= boost::lexical_cast<bool>(parameter.GetValue(buff));
+		PrintMessage("%s : %s \r\n", buff, pDynamixelProperty->isCounterclockwiseMode ? "true" : "false");
+
 		//DynamixelID
-		sprintf(buff, "%s%d", DYNAMIXEL_ID.c_str(), i);
+		sprintf(buff, "%s%d", DYNAMIXEL_ID, i);
 		if (parameter.FindName(buff) == false) 
 		{
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
 		}
-		pDynamixelProperty->id = atoi(parameter.GetValue(buff).c_str());
+		pDynamixelProperty->id = boost::lexical_cast<unsigned char>(parameter.GetValue(buff));
 		PrintMessage("%s : %d \r\n", buff, pDynamixelProperty->id);
 
 		//ComplianceMargine
-		sprintf(buff, "%s%d", COMPLIANCE_MARGINE.c_str(), i);
-		if (parameter.FindName(buff) == false) 
-		{
-			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
-			return false;
-		}
-		pDynamixelProperty->complianceMargine = atoi(parameter.GetValue(buff).c_str());
+		sprintf(buff, "%s%d", COMPLIANCE_MARGINE, i);
+		if (parameter.FindName(buff)) 
+			pDynamixelProperty->complianceMargine
+			= boost::lexical_cast<unsigned char>(parameter.GetValue(buff));
 		PrintMessage("%s : %d \r\n", buff, pDynamixelProperty->complianceMargine);
 
 		//ComplianceSlope
-		sprintf(buff, "%s%d", COMPLIANCE_SLOPE.c_str(), i);
-		if (parameter.FindName(buff) == false) 
-		{
-			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
-			return false;
-		}
-		pDynamixelProperty->compliacneSlope = atoi(parameter.GetValue(buff).c_str());
+		sprintf(buff, "%s%d", COMPLIANCE_SLOPE, i);
+		if (parameter.FindName(buff)) 
+			pDynamixelProperty->compliacneSlope
+			= boost::lexical_cast<unsigned char>(parameter.GetValue(buff));
 		PrintMessage("%s : %d \r\n", buff, pDynamixelProperty->compliacneSlope);
 
 		//PositionResolution
-		sprintf(buff, "%s%d", POSITION_RESOLUTION.c_str(), i);
-		if (parameter.FindName(buff) == false) 
+		sprintf(buff, "%s%d", POSITION_RESOLUTION, i);
+		if (!parameter.FindName(buff)) 
 		{
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
 		}
-		pDynamixelProperty->positionResolution = atof(parameter.GetValue(buff).c_str());
+		pDynamixelProperty->positionResolution
+			= boost::lexical_cast<double>(parameter.GetValue(buff));
 		PrintMessage("%s : %lf \r\n", buff, pDynamixelProperty->positionResolution);
 
 		//PositionOffset
-		sprintf(buff, "%s%d", POSITION_OFFSET.c_str(), i);
-		if (parameter.FindName(buff) == false) 
+		sprintf(buff, "%s%d", POSITION_OFFSET, i);
+		if (!parameter.FindName(buff)) 
 		{
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
 		}
-		pDynamixelProperty->positionOffset = atof(parameter.GetValue(buff).c_str());
+		pDynamixelProperty->positionOffset
+			= boost::lexical_cast<double>(parameter.GetValue(buff));
 		PrintMessage("%s : %lf \r\n", buff, pDynamixelProperty->positionOffset);
 
 		//MaximumPower
-		sprintf(buff, "%s%d", MAXIMUM_POWER.c_str(), i);
-		if (parameter.FindName(buff) == false)
-		{
-			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
-			return false;
-		}
-		pDynamixelProperty->maximumPower = atof(parameter.GetValue(buff).c_str());
+		sprintf(buff, "%s%d", MAXIMUM_POWER, i);
+		if (parameter.FindName(buff))
+			pDynamixelProperty->maximumPower
+			= boost::lexical_cast<double>(parameter.GetValue(buff));
 		PrintMessage("%s : %lf \r\n", buff, pDynamixelProperty->maximumPower);
 
 		//MaximumVelocity
-		sprintf(buff, "%s%d", MAXIMUM_VELOCITY.c_str(), i);
-		if (parameter.FindName(buff) == false) 
-		{
-			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
-			return false;
-		}
-		pDynamixelProperty->maximuVelocity = atof(parameter.GetValue(buff).c_str());
+		sprintf(buff, "%s%d", MAXIMUM_VELOCITY, i);
+		if (parameter.FindName(buff)) 
+			pDynamixelProperty->maximuVelocity
+			= boost::lexical_cast<double>(parameter.GetValue(buff));
 		PrintMessage("%s : %lf \r\n", buff, pDynamixelProperty->maximuVelocity);
 
 		//MinimumPositionLimit
-		sprintf(buff, "%s%d", MINIMUM_POSITION_LIMIT.c_str(), i);
-		if (parameter.FindName(buff) == false) 
+		sprintf(buff, "%s%d", MINIMUM_POSITION_LIMIT, i);
+		if (!parameter.FindName(buff)) 
 		{
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
-		}
-		pDynamixelProperty->minimumPositionLimit = atof(parameter.GetValue(buff).c_str());
+		} 
+		pDynamixelProperty->minimumPositionLimit
+			= boost::lexical_cast<double>(parameter.GetValue(buff));
 		PrintMessage("%s : %lf \r\n", buff, pDynamixelProperty->minimumPositionLimit);
 
 		//MaximumPositionLimit
-		sprintf(buff, "%s%d", MAXIMUM_POSITION_LIMIT.c_str(), i);
-		if (parameter.FindName(buff) == false) 
+		sprintf(buff, "%s%d", MAXIMUM_POSITION_LIMIT, i);
+		if (!parameter.FindName(buff)) 
 		{
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
 		}
-		pDynamixelProperty->maximumPositionLimit = atof(parameter.GetValue(buff).c_str());
+		pDynamixelProperty->maximumPositionLimit
+			= boost::lexical_cast<double>(parameter.GetValue(buff));
 		PrintMessage("%s : %lf \r\n", buff, pDynamixelProperty->maximumPositionLimit);
 
 		PrintMessage("\r\n");
@@ -287,109 +291,141 @@ bool DynamixelGripper::Setting( Property& parameter)
 	{
 		boost::shared_ptr<GripperDynamixelProperty> pGripperProperty = boost::make_shared<GripperDynamixelProperty>();
 
+		bool isEnoughGripperProperty = true;
+
+		//CounterclockwiseMode
+		sprintf(buff, "Gripper%s", COUNTERCLOCKWISE_MODE);
+		if (parameter.FindName(buff)) 
+			pGripperProperty->isCounterclockwiseMode 
+			= boost::lexical_cast<bool>(parameter.GetValue(buff));
+		PrintMessage("%s : %s \r\n", buff, pGripperProperty->isCounterclockwiseMode ? "true" : "false");
+
 		//DynamixelID
-		sprintf(buff, "Gripper%s", DYNAMIXEL_ID.c_str());
-		if (parameter.FindName(buff) == false) 
+		sprintf(buff, "Gripper%s", DYNAMIXEL_ID);
+		if (!parameter.FindName(buff)) 
 		{
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
-			return false;
+			isEnoughGripperProperty = false;
 		}
-		pGripperProperty->id = atoi(parameter.GetValue(buff).c_str());
-		PrintMessage("%s : %d \r\n", buff, pGripperProperty->id);	
-
+		else
+		{
+			pGripperProperty->id = boost::lexical_cast<unsigned char>(parameter.GetValue(buff));
+			PrintMessage("%s : %d \r\n", buff, pGripperProperty->id);	
+		}
+		
 		//ComplianceMargine
-		sprintf(buff, "Gripper%s", COMPLIANCE_MARGINE.c_str());
-		if (parameter.FindName(buff) == false) 
-		{
-			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
-			return false;
-		}
-		pGripperProperty->complianceMargine = atoi(parameter.GetValue(buff).c_str());
+		sprintf(buff, "Gripper%s", COMPLIANCE_MARGINE);
+		if (parameter.FindName(buff)) 
+			pGripperProperty->complianceMargine
+			= boost::lexical_cast<unsigned char>(parameter.GetValue(buff));
 		PrintMessage("%s : %d \r\n", buff, pGripperProperty->complianceMargine);	
-
+		
 		//ComplianceSlope
-		sprintf(buff, "Gripper%s", COMPLIANCE_SLOPE.c_str());
-		if (parameter.FindName(buff) == false) 
-		{
-			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
-			return false;
-		}
-		pGripperProperty->compliacneSlope = atoi(parameter.GetValue(buff).c_str());
+		sprintf(buff, "Gripper%s", COMPLIANCE_SLOPE);
+		if (parameter.FindName(buff)) 
+			pGripperProperty->compliacneSlope
+			= boost::lexical_cast<unsigned char>(parameter.GetValue(buff));
 		PrintMessage("%s : %d \r\n", buff, pGripperProperty->compliacneSlope);	
 
 		//PositionResolution
-		sprintf(buff, "Gripper%s", POSITION_RESOLUTION.c_str());
-		if (parameter.FindName(buff) == false) 
+		sprintf(buff, "Gripper%s", POSITION_RESOLUTION);
+		if (!parameter.FindName(buff)) 
 		{
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
-			return false;
+			isEnoughGripperProperty =  false;
 		}
-		pGripperProperty->positionResolution = atof(parameter.GetValue(buff).c_str());
-		PrintMessage("%s : %lf \r\n", buff, pGripperProperty->positionResolution);	
+		else
+		{
+			pGripperProperty->positionResolution
+				= boost::lexical_cast<double>(parameter.GetValue(buff));
+			PrintMessage("%s : %lf \r\n", buff, pGripperProperty->positionResolution);	
+		}
 
 		//PositionOffset
-		sprintf(buff, "Gripper%s", POSITION_OFFSET.c_str());
-		if (parameter.FindName(buff) == false) 
+		sprintf(buff, "Gripper%s", POSITION_OFFSET);
+		if (!parameter.FindName(buff)) 
 		{
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
-			return false;
+			isEnoughGripperProperty =  false;
 		}
-		pGripperProperty->positionOffset = atof(parameter.GetValue(buff).c_str());
-		PrintMessage("%s : %lf \r\n", buff, pGripperProperty->positionOffset);	
+		else
+		{
+			pGripperProperty->positionOffset
+				= boost::lexical_cast<double>(parameter.GetValue(buff));
+			PrintMessage("%s : %lf \r\n", buff, pGripperProperty->positionOffset);	
+		}
 
 		//MaximumPower
-		sprintf(buff, "Gripper%s", MAXIMUM_POWER.c_str());
-		if (parameter.FindName(buff) == false)
-		{
-			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
-			return false;
-		}
-		pGripperProperty->maximumPower = atof(parameter.GetValue(buff).c_str());
+		sprintf(buff, "Gripper%s", MAXIMUM_POWER);
+		if (parameter.FindName(buff))
+			pGripperProperty->maximumPower
+			= boost::lexical_cast<double>(parameter.GetValue(buff));
 		PrintMessage("%s : %lf \r\n", buff, pGripperProperty->maximumPower);	
 
 		//MaximumVelocity
-		sprintf(buff, "Gripper%s", MAXIMUM_VELOCITY.c_str());
-		if (parameter.FindName(buff) == false) 
-		{
-			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
-			return false;
-		}
-		pGripperProperty->maximuVelocity = atof(parameter.GetValue(buff).c_str());
+		sprintf(buff, "Gripper%s", MAXIMUM_VELOCITY);
+		if (parameter.FindName(buff)) 
+			pGripperProperty->maximuVelocity
+			= boost::lexical_cast<double>(parameter.GetValue(buff));
 		PrintMessage("%s : %lf \r\n", buff, pGripperProperty->maximuVelocity);	
 
 		//MinimumPositionLimit
-		sprintf(buff, "Gripper%s", MINIMUM_POSITION_LIMIT.c_str());
-		if (parameter.FindName(buff) == false) 
+		sprintf(buff, "Gripper%s", MINIMUM_POSITION_LIMIT);
+		if (!parameter.FindName(buff)) 
 		{
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
-			return false;
+			isEnoughGripperProperty =  false;
 		}
-		pGripperProperty->minimumPositionLimit = atof(parameter.GetValue(buff).c_str());
-		PrintMessage("%s : %lf \r\n", buff, pGripperProperty->minimumPositionLimit);	
+		else
+		{
+			pGripperProperty->minimumPositionLimit
+				= boost::lexical_cast<double>(parameter.GetValue(buff));
+			PrintMessage("%s : %lf \r\n", buff, pGripperProperty->minimumPositionLimit);	
+		}
 
 		//MaximumPositionLimit
-		sprintf(buff, "Gripper%s", MAXIMUM_POSITION_LIMIT.c_str());
-		if (parameter.FindName(buff) == false) 
+		sprintf(buff, "Gripper%s", MAXIMUM_POSITION_LIMIT);
+		if (!parameter.FindName(buff)) 
 		{
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
-			return false;
+			isEnoughGripperProperty =  false;
 		}
-		pGripperProperty->maximumPositionLimit = atof(parameter.GetValue(buff).c_str());
-		PrintMessage("%s : %lf \r\n", buff, pGripperProperty->maximumPositionLimit);	
+		else
+		{
+			pGripperProperty->maximumPositionLimit
+				= boost::lexical_cast<double>(parameter.GetValue(buff));
+			PrintMessage("%s : %lf \r\n", buff, pGripperProperty->maximumPositionLimit);	
+		}
 
 		//MaximumLoad
 		sprintf(buff, "GripperMaximumLoad");
-		if (parameter.FindName(buff) == false) 
+		if (!parameter.FindName(buff)) 
 		{
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
-			return false;
+			isEnoughGripperProperty =  false;
 		}
-		pGripperProperty->maximumLoad = atof(parameter.GetValue(buff).c_str());
-		PrintMessage("%s : %lf \r\n", buff, pGripperProperty->maximumLoad);	
+		else
+		{
+			pGripperProperty->maximumLoad
+				= boost::lexical_cast<double>(parameter.GetValue(buff));
+			PrintMessage("%s : %lf \r\n", buff, pGripperProperty->maximumLoad);	
+		}
+
+		if (isEnoughGripperProperty)
+		{	
+			pGripperProperty->pDynamixel = boost::make_shared<DynamixelUART>(uart, pGripperProperty->id);
+		}
+		else
+		{
+			pGripperProperty->id = DummyDynamixelUart::DUMMY_ID;
+			pGripperProperty->pDynamixel =  boost::make_shared<DummyDynamixelUart>();
+
+			PrintMessage("DynamixelGripper will operate Manipulator. \r\n");
+			PrintMessage("Because property of related gripper is not enough. \r\n");			
+		}
 
 		PrintMessage("\r\n");	
-
-		pGripperProperty->pDynamixel = boost::make_shared<DynamixelUART>(uart, pGripperProperty->id);
+				
 		mDynamixelProperties.push_back(pGripperProperty);
 		mDynamixelGroup.push_back(pGripperProperty->pDynamixel);
 	}
@@ -491,140 +527,105 @@ int DynamixelGripper::GetParameter( Property& parameter )
 		return API_ERROR;
 	}
 
-	const string DYNAMIXEL_ID = "DynamixelID";
-	const string COMPLIANCE_MARGINE = "ComplianceMargine";
-	const string COMPLIANCE_SLOPE = "ComplianceSlope";
-	const string POSITION_RESOLUTION = "PositionResolution";
-	const string POSITION_OFFSET = "PositionOffset";
-	const string MAXIMUM_POWER = "MaximumPower";
-	const string MAXIMUM_VELOCITY = "MaximumVelocity";
-	const string MINIMUM_POSITION_LIMIT = "MinimumPositionLimit";
-	const string MAXIMUM_POSITION_LIMIT = "MaximumPositionLimit";
+	parameter.SetValue(JOINT_COUNT, boost::lexical_cast<std::string>(mDynamixelProperties.size() - 1));
 	
 	char buff[100] = {0, };
-	stringstream stringStream;
 
 	for (size_t i = 0, end = mDynamixelProperties.size() - 1;  i < end; i++)
 	{
-		DynamixelProperty& dynamixelProperty = *mDynamixelProperties[i];
+		DynamixelProperty& property = *mDynamixelProperties[i];
 
+		//CounterclockwiseMode
+		sprintf(buff, "%s%d", COUNTERCLOCKWISE_MODE, i);
+		parameter.SetValue(buff, boost::lexical_cast<std::string>(property.isCounterclockwiseMode));
+		
 		//DynamixelID
 		sprintf(buff, "%s%d", DYNAMIXEL_ID, i);
-		stringStream.str("");
-		stringStream << dynamixelProperty.id;
-		parameter.SetValue(buff, stringStream.str());
-
+		parameter.SetValue(buff, boost::lexical_cast<std::string>(property.id));
+		
 		//ComplianceMargine
-		sprintf(buff, "%s%d", COMPLIANCE_MARGINE.c_str(), i);
-		stringStream.str("");
-		stringStream << dynamixelProperty.complianceMargine;
-		parameter.SetValue(buff, stringStream.str());
+		sprintf(buff, "%s%d", COMPLIANCE_MARGINE, i);
+		parameter.SetValue(buff, boost::lexical_cast<std::string>(property.complianceMargine));
 
 		//ComplianceSlope
-		sprintf(buff, "%s%d", COMPLIANCE_SLOPE.c_str(), i);
-		stringStream.str("");
-		stringStream << dynamixelProperty.compliacneSlope;
-		parameter.SetValue(buff, stringStream.str());
+		sprintf(buff, "%s%d", COMPLIANCE_SLOPE, i);
+		parameter.SetValue(buff, boost::lexical_cast<std::string>(property.compliacneSlope));
 
 		//PositionResolution
-		sprintf(buff, "%s%d", POSITION_RESOLUTION.c_str(), i);
-		stringStream.str("");
-		stringStream << dynamixelProperty.positionResolution;
-		parameter.SetValue(buff, stringStream.str());
+		sprintf(buff, "%s%d", POSITION_RESOLUTION, i);
+		parameter.SetValue(buff, boost::lexical_cast<std::string>(property.positionResolution));
 
 		//PositionOffset
-		sprintf(buff, "%s%d", POSITION_OFFSET.c_str(), i);
-		stringStream.str("");
-		stringStream << dynamixelProperty.positionOffset;
-		parameter.SetValue(buff, stringStream.str());
+		sprintf(buff, "%s%d", POSITION_OFFSET, i);
+		parameter.SetValue(buff, boost::lexical_cast<std::string>(property.positionOffset));
 
 		//MaximumPower
-		sprintf(buff, "%s%d", MAXIMUM_POWER.c_str(), i);
-		stringStream.str("");
-		stringStream << dynamixelProperty.maximumPower;
-		parameter.SetValue(buff, stringStream.str());
+		sprintf(buff, "%s%d", MAXIMUM_POWER, i);
+		parameter.SetValue(buff, boost::lexical_cast<std::string>(property.maximumPower));
 
 		//MaximumVelocity
-		sprintf(buff, "%s%d", MAXIMUM_VELOCITY.c_str(), i);
-		stringStream.str("");
-		stringStream << dynamixelProperty.maximuVelocity;
-		parameter.SetValue(buff, stringStream.str());
+		sprintf(buff, "%s%d", MAXIMUM_VELOCITY, i);
+		parameter.SetValue(buff, boost::lexical_cast<std::string>(property.maximuVelocity));
 
 		//MinimumPositionLimit
-		sprintf(buff, "%s%d", MINIMUM_POSITION_LIMIT.c_str(), i);
-		stringStream.str("");
-		stringStream << dynamixelProperty.minimumPositionLimit;
-		parameter.SetValue(buff, stringStream.str());
+		sprintf(buff, "%s%d", MINIMUM_POSITION_LIMIT, i);
+		parameter.SetValue(buff, boost::lexical_cast<std::string>(property.minimumPositionLimit));
 
 		//MaximumPositionLimit
-		sprintf(buff, "%s%d", MAXIMUM_POSITION_LIMIT.c_str(), i);
-		stringStream.str("");
-		stringStream << dynamixelProperty.maximumPositionLimit;
-		parameter.SetValue(buff, stringStream.str());
+		sprintf(buff, "%s%d", MAXIMUM_POSITION_LIMIT, i);
+		parameter.SetValue(buff, boost::lexical_cast<std::string>(property.maximumPositionLimit));
 	}
 
 	{
-		GripperDynamixelProperty& gripperProperty = static_cast<GripperDynamixelProperty&>(**mDynamixelProperties.rbegin());
+		GripperDynamixelProperty& property 
+			= static_cast<GripperDynamixelProperty&>(**mDynamixelProperties.rbegin());
+		
+		if (property.id != DummyDynamixelUart::DUMMY_ID)
+		{
+			//CounterclockwiseMode
+			sprintf(buff, "Gripper%s", COUNTERCLOCKWISE_MODE);
+			parameter.SetValue(buff, boost::lexical_cast<std::string>(property.isCounterclockwiseMode));
 
-		//DynamixelID
-		sprintf(buff, "Gripper%s", DYNAMIXEL_ID.c_str());
-		stringStream.str("");
-		stringStream << gripperProperty.id;
-		parameter.SetValue(buff, stringStream.str());
+			//DynamixelID
+			sprintf(buff, "Gripper%s", DYNAMIXEL_ID);
+			parameter.SetValue(buff, boost::lexical_cast<std::string>(property.id));
 
-		//ComplianceMargine
-		sprintf(buff, "Gripper%s", COMPLIANCE_MARGINE.c_str());
-		stringStream.str("");
-		stringStream << gripperProperty.complianceMargine;
-		parameter.SetValue(buff, stringStream.str());
+			//ComplianceMargine
+			sprintf(buff, "Gripper%s", COMPLIANCE_MARGINE);
+			parameter.SetValue(buff, boost::lexical_cast<std::string>(property.complianceMargine));
 
-		//ComplianceSlope
-		sprintf(buff, "Gripper%s", COMPLIANCE_SLOPE.c_str());
-		stringStream.str("");
-		stringStream << gripperProperty.compliacneSlope;
-		parameter.SetValue(buff, stringStream.str());
+			//ComplianceSlope
+			sprintf(buff, "Gripper%s", COMPLIANCE_SLOPE);
+			parameter.SetValue(buff, boost::lexical_cast<std::string>(property.compliacneSlope));
 
-		//PositionResolution
-		sprintf(buff, "Gripper%s", POSITION_RESOLUTION.c_str());
-		stringStream.str("");
-		stringStream << gripperProperty.positionResolution;
-		parameter.SetValue(buff, stringStream.str());
+			//PositionResolution
+			sprintf(buff, "Gripper%s", POSITION_RESOLUTION);
+			parameter.SetValue(buff, boost::lexical_cast<std::string>(property.positionResolution));
 
-		//PositionOffset
-		sprintf(buff, "Gripper%s", POSITION_OFFSET.c_str());
-		stringStream.str("");
-		stringStream << gripperProperty.positionOffset;
-		parameter.SetValue(buff, stringStream.str());
+			//PositionOffset
+			sprintf(buff, "Gripper%s", POSITION_OFFSET);
+			parameter.SetValue(buff, boost::lexical_cast<std::string>(property.positionOffset));
 
-		//MaximumPower
-		sprintf(buff, "Gripper%s", MAXIMUM_POWER.c_str());
-		stringStream.str("");
-		stringStream << gripperProperty.maximumPower;
-		parameter.SetValue(buff, stringStream.str());
+			//MaximumPower
+			sprintf(buff, "Gripper%s", MAXIMUM_POWER);
+			parameter.SetValue(buff, boost::lexical_cast<std::string>(property.maximumPower));
 
-		//MaximumVelocity
-		sprintf(buff, "Gripper%s", MAXIMUM_VELOCITY.c_str());
-		stringStream.str("");
-		stringStream << gripperProperty.maximuVelocity;
-		parameter.SetValue(buff, stringStream.str());
+			//MaximumVelocity
+			sprintf(buff, "Gripper%s", MAXIMUM_VELOCITY);
+			parameter.SetValue(buff, boost::lexical_cast<std::string>(property.maximuVelocity));
 
-		//MinimumPositionLimit
-		sprintf(buff, "Gripper%s", MINIMUM_POSITION_LIMIT.c_str());
-		stringStream.str("");
-		stringStream << gripperProperty.minimumPositionLimit;
-		parameter.SetValue(buff, stringStream.str());
+			//MinimumPositionLimit
+			sprintf(buff, "Gripper%s", MINIMUM_POSITION_LIMIT);
+			parameter.SetValue(buff, boost::lexical_cast<std::string>(property.minimumPositionLimit));
 
-		//MaximumPositionLimit
-		sprintf(buff, "Gripper%s", MAXIMUM_POSITION_LIMIT.c_str());
-		stringStream.str("");
-		stringStream << gripperProperty.maximumPositionLimit;
-		parameter.SetValue(buff, stringStream.str());	
+			//MaximumPositionLimit
+			sprintf(buff, "Gripper%s", MAXIMUM_POSITION_LIMIT);
+			parameter.SetValue(buff, boost::lexical_cast<std::string>(property.maximumPositionLimit));	
 
-		//MaximumLoad
-		sprintf(buff, "GripperMaximumLoad");
-		stringStream.str("");
-		stringStream << gripperProperty.maximumLoad;
-		parameter.SetValue(buff, stringStream.str());
+			//MaximumLoad
+			sprintf(buff, "Gripper%s", MAXIMUM_LOAD);
+			parameter.SetValue(buff, boost::lexical_cast<std::string>(property.maximumLoad));
+		}
 	}
 
 	return API_SUCCESS;
@@ -665,7 +666,8 @@ int DynamixelGripper::OnExecute()
 		DynamixelProperty& property = *mDynamixelProperties[i];
 
 		// 단위계 변환
-		jointPosition[i] = ConvertPositionUnitToDegree(rawJointPosition[i]
+		jointPosition[i] = (property.isCounterclockwiseMode ? 1.0 : -1.0) 
+			* ConvertPositionUnitToDegree(rawJointPosition[i]
 		, property.positionOffset, property.positionResolution);
 	}
 
@@ -776,7 +778,8 @@ int DynamixelGripper::SetPosition( vector<double> position, vector<unsigned long
 	for (size_t i = 0, end = dynamixelPositon.size();  i < end; i++)
 	{
 		DynamixelProperty& property = *mDynamixelProperties[i];
-		dynamixelPositon[i] = ConvertPositionUnitToDynamixel(position[i]
+		dynamixelPositon[i] = ConvertPositionUnitToDynamixel(
+			(property.isCounterclockwiseMode ? 1.0 : -1.0) * position[i]
 		, property.positionOffset, property.positionResolution);
 	}
 
@@ -803,7 +806,6 @@ int DynamixelGripper::GetPosition( vector<double> &position )
 	boost::shared_lock<boost::shared_mutex> lock(mJointPositionMutex);
 
 	// mJointPosition의 마지막 원소는 그리퍼 조인트의 위치 이므로,
-	// GetPosition() 에서는 그리퍼 조인트의 위치를 반환하지 않는다.
 	position.resize(mJointPosition.size() - 1);
 	std::copy(mJointPosition.begin(), mJointPosition.end() - 1, position.begin());
 
@@ -818,11 +820,15 @@ int DynamixelGripper::StartGripping()
 		return API_ERROR;
 	}
 
-	DynamixelUART& gripper = **mDynamixelGroup.rbegin();
+	GripperDynamixelProperty& property
+		= static_cast<GripperDynamixelProperty&>(**mDynamixelProperties.rbegin());
+	if (property.id == DummyDynamixelUart::DUMMY_ID)
+		return API_NOT_SUPPORTED;
 
 	uart->Lock();
-	GripperDynamixelProperty& gripperProperty = static_cast<GripperDynamixelProperty&>(**mDynamixelProperties.rbegin());
-	gripper.SetGoalPosition(ConvertPositionUnitToDynamixel(gripperProperty.maximumPositionLimit, gripperProperty.positionOffset, gripperProperty.positionResolution));
+	property.pDynamixel->SetGoalPosition(ConvertPositionUnitToDynamixel(
+		(property.isCounterclockwiseMode ? 1.0 : -1.0) * property.maximumPositionLimit
+		, property.positionOffset, property.positionResolution));
 	uart->Unlock();
 
 	mIsGripped = true;
@@ -839,11 +845,15 @@ int DynamixelGripper::StopGripping()
 	}
 
 	//gripperMessageQueue.Push(STOP_GRIPPING);
-	DynamixelUART& gripper = **mDynamixelGroup.rbegin();
+	GripperDynamixelProperty& property
+		= static_cast<GripperDynamixelProperty&>(**mDynamixelProperties.rbegin());
+	if (property.id == DummyDynamixelUart::DUMMY_ID)
+		return API_NOT_SUPPORTED;
 
 	uart->Lock();
-	GripperDynamixelProperty& property = static_cast<GripperDynamixelProperty&>(**mDynamixelProperties.rbegin());
-	gripper.SetGoalPosition(ConvertPositionUnitToDynamixel(property.minimumPositionLimit, property.positionOffset, property.positionResolution));
+	property.pDynamixel->SetGoalPosition(ConvertPositionUnitToDynamixel(
+		(property.isCounterclockwiseMode ? 1.0 : -1.0) * property.minimumPositionLimit
+		, property.positionOffset, property.positionResolution));
 	uart->Unlock();
 
 	mIsGripped = false;
@@ -857,13 +867,17 @@ int DynamixelGripper::IsGripped(bool &isGripped)
 		PrintMessage("Error : DynamixelManipulator::IsGripped()->Precondition not met<< %s(%d)\r\n", __FILE__, __LINE__);
 		return API_ERROR;
 	}
+
+	GripperDynamixelProperty& property
+		= static_cast<GripperDynamixelProperty&>(**mDynamixelProperties.rbegin());
+	if (property.id == DummyDynamixelUart::DUMMY_ID)
+		return API_NOT_SUPPORTED;
+
 	isGripped = mIsGripped;
 	return API_SUCCESS;
 
 	boost::shared_lock<boost::shared_mutex> lock(mJointPositionMutex);
 	std::cout << mGripperJointLoad << std::endl;
-
-	GripperDynamixelProperty& property = static_cast<GripperDynamixelProperty&>(**mDynamixelProperties.rbegin());
 
 	if (mGripperJointLoad > property.maximumLoad * 0.9)
 	{
@@ -911,7 +925,7 @@ void DynamixelGripper::GripperControlThreadHandler()
 
 							mJointPositionMutex.lock_shared();
 
-							double presentLoad = mGripperJointLoad;
+							double presentLoad = (property.isCounterclockwiseMode ? 1.0 : -1.0) * mGripperJointLoad;
 							double presentPosition = *mJointPosition.rbegin();
 
 							mJointPositionMutex.unlock_shared();
@@ -925,7 +939,7 @@ void DynamixelGripper::GripperControlThreadHandler()
 							double positionDifference = (property.maximumPositionLimit - property.minimumPositionLimit) / 7 * (loadDifference / property.maximumLoad);
 
 							DynamixelUART& gripper = **mDynamixelGroup.rbegin();
-							gripper.SetGoalPosition(ConvertPositionUnitToDynamixel(presentPosition + positionDifference, property.positionOffset, property.positionResolution));
+							gripper.SetGoalPosition(ConvertPositionUnitToDynamixel((property.isCounterclockwiseMode ? 1.0 : -1.0) * (presentPosition + positionDifference), property.positionOffset, property.positionResolution));
 						}
 					}
 					catch(...)
@@ -1014,3 +1028,16 @@ OprosApi* GetAPI()
 }
 
 #endif
+
+#undef JOINT_COUNT
+#undef COUNTERCLOCKWISE_MODE
+#undef DYNAMIXEL_ID
+#undef COMPLIANCE_MARGINE
+#undef COMPLIANCE_SLOPE
+#undef POSITION_RESOLUTION
+#undef POSITION_OFFSET
+#undef MAXIMUM_POWER
+#undef MAXIMUM_VELOCITY
+#undef MINIMUM_POSITION_LIMIT
+#undef MAXIMUM_POSITION_LIMIT
+#undef MAXIMUM_LOAD
