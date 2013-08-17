@@ -25,7 +25,7 @@ protected:
 	struct DynamixelProperty
 	{
 		DynamixelProperty(boost::shared_ptr<DynamixelUART>& pDynamixel_ = boost::shared_ptr<DynamixelUART>())
-			: pDynamixel(pDynamixel_), id(0), maximumPower(0.0), maximuVelocity(0.0)
+			: pDynamixel(pDynamixel_), isCounterclockwiseMode(true), id(0), maximumPower(0.0), maximuVelocity(0.0)
 			, complianceMargine(0), compliacneSlope(0)
 			, minimumPositionLimit(0.0), maximumPositionLimit(0.0)
 			, positionResolution(0.0), positionOffset(0.0)
@@ -33,6 +33,7 @@ protected:
 
 		boost::shared_ptr<DynamixelUART> pDynamixel;
 		
+		bool isCounterclockwiseMode;
 		unsigned char id;
 		unsigned char complianceMargine;
 		unsigned char compliacneSlope;
