@@ -1,4 +1,5 @@
 ﻿#ifndef __DUMMY_DYNAMIXEL_UART_H__
+#define __DUMMY_DYNAMIXEL_UART_H__
 
 #include "DynamixelUART.h"
 
