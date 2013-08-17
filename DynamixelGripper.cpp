@@ -178,12 +178,12 @@ bool DynamixelGripper::Setting( Property& parameter)
 		PrintMessage("Error : DynamixelManipulator::Setting()->Can't find Size<< %s(%d)\r\n", __FILE__, __LINE__);
 		return false;
 	}
-	const size_t jointCount = atoi(parameter.GetValue(JOINT_COUNT).c_str());
+	const size_t jointCount = boost::lexical_cast<size_t>(parameter.GetValue(JOINT_COUNT));
 	
 	PrintMessage("\r\nDynamixelGripper Property Setting\r\n");
 
 	char buff[100] = {0, };
-	for (unsigned int i = 0;  i < jointCount; i++)
+	for (size_t i = 0;  i < jointCount; i++)
 	{
 		boost::shared_ptr<DynamixelProperty> pDynamixelProperty = boost::make_shared<DynamixelProperty>();
 
@@ -194,7 +194,7 @@ bool DynamixelGripper::Setting( Property& parameter)
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
 		}
-		pDynamixelProperty->id = atoi(parameter.GetValue(buff).c_str());
+		pDynamixelProperty->id = boost::lexical_cast<unsigned char>(parameter.GetValue(buff));
 		PrintMessage("%s : %d \r\n", buff, pDynamixelProperty->id);
 
 		//ComplianceMargine
@@ -204,7 +204,8 @@ bool DynamixelGripper::Setting( Property& parameter)
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
 		}
-		pDynamixelProperty->complianceMargine = atoi(parameter.GetValue(buff).c_str());
+		pDynamixelProperty->complianceMargine
+			= boost::lexical_cast<unsigned char>(parameter.GetValue(buff));
 		PrintMessage("%s : %d \r\n", buff, pDynamixelProperty->complianceMargine);
 
 		//ComplianceSlope
@@ -214,7 +215,8 @@ bool DynamixelGripper::Setting( Property& parameter)
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
 		}
-		pDynamixelProperty->compliacneSlope = atoi(parameter.GetValue(buff).c_str());
+		pDynamixelProperty->compliacneSlope
+			= boost::lexical_cast<unsigned char>(parameter.GetValue(buff));
 		PrintMessage("%s : %d \r\n", buff, pDynamixelProperty->compliacneSlope);
 
 		//PositionResolution
@@ -224,7 +226,8 @@ bool DynamixelGripper::Setting( Property& parameter)
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
 		}
-		pDynamixelProperty->positionResolution = atof(parameter.GetValue(buff).c_str());
+		pDynamixelProperty->positionResolution
+			= boost::lexical_cast<double>(parameter.GetValue(buff));
 		PrintMessage("%s : %lf \r\n", buff, pDynamixelProperty->positionResolution);
 
 		//PositionOffset
@@ -234,7 +237,8 @@ bool DynamixelGripper::Setting( Property& parameter)
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
 		}
-		pDynamixelProperty->positionOffset = atof(parameter.GetValue(buff).c_str());
+		pDynamixelProperty->positionOffset
+			= boost::lexical_cast<double>(parameter.GetValue(buff));
 		PrintMessage("%s : %lf \r\n", buff, pDynamixelProperty->positionOffset);
 
 		//MaximumPower
@@ -244,7 +248,8 @@ bool DynamixelGripper::Setting( Property& parameter)
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
 		}
-		pDynamixelProperty->maximumPower = atof(parameter.GetValue(buff).c_str());
+		pDynamixelProperty->maximumPower
+			= boost::lexical_cast<double>(parameter.GetValue(buff));
 		PrintMessage("%s : %lf \r\n", buff, pDynamixelProperty->maximumPower);
 
 		//MaximumVelocity
@@ -254,7 +259,8 @@ bool DynamixelGripper::Setting( Property& parameter)
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
 		}
-		pDynamixelProperty->maximuVelocity = atof(parameter.GetValue(buff).c_str());
+		pDynamixelProperty->maximuVelocity
+			= boost::lexical_cast<double>(parameter.GetValue(buff));
 		PrintMessage("%s : %lf \r\n", buff, pDynamixelProperty->maximuVelocity);
 
 		//MinimumPositionLimit
@@ -264,7 +270,8 @@ bool DynamixelGripper::Setting( Property& parameter)
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
 		}
-		pDynamixelProperty->minimumPositionLimit = atof(parameter.GetValue(buff).c_str());
+		pDynamixelProperty->minimumPositionLimit
+			= boost::lexical_cast<double>(parameter.GetValue(buff));
 		PrintMessage("%s : %lf \r\n", buff, pDynamixelProperty->minimumPositionLimit);
 
 		//MaximumPositionLimit
@@ -274,7 +281,8 @@ bool DynamixelGripper::Setting( Property& parameter)
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
 		}
-		pDynamixelProperty->maximumPositionLimit = atof(parameter.GetValue(buff).c_str());
+		pDynamixelProperty->maximumPositionLimit
+			= boost::lexical_cast<double>(parameter.GetValue(buff));
 		PrintMessage("%s : %lf \r\n", buff, pDynamixelProperty->maximumPositionLimit);
 
 		PrintMessage("\r\n");
@@ -298,7 +306,7 @@ bool DynamixelGripper::Setting( Property& parameter)
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
 		}
-		pGripperProperty->id = atoi(parameter.GetValue(buff).c_str());
+		pGripperProperty->id = boost::lexical_cast<unsigned char>(parameter.GetValue(buff));
 		PrintMessage("%s : %d \r\n", buff, pGripperProperty->id);	
 
 		//ComplianceMargine
@@ -308,7 +316,8 @@ bool DynamixelGripper::Setting( Property& parameter)
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
 		}
-		pGripperProperty->complianceMargine = atoi(parameter.GetValue(buff).c_str());
+		pGripperProperty->complianceMargine
+			= boost::lexical_cast<unsigned char>(parameter.GetValue(buff));
 		PrintMessage("%s : %d \r\n", buff, pGripperProperty->complianceMargine);	
 
 		//ComplianceSlope
@@ -318,7 +327,8 @@ bool DynamixelGripper::Setting( Property& parameter)
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
 		}
-		pGripperProperty->compliacneSlope = atoi(parameter.GetValue(buff).c_str());
+		pGripperProperty->compliacneSlope
+			= boost::lexical_cast<unsigned char>(parameter.GetValue(buff));
 		PrintMessage("%s : %d \r\n", buff, pGripperProperty->compliacneSlope);	
 
 		//PositionResolution
@@ -328,7 +338,8 @@ bool DynamixelGripper::Setting( Property& parameter)
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
 		}
-		pGripperProperty->positionResolution = atof(parameter.GetValue(buff).c_str());
+		pGripperProperty->positionResolution
+			= boost::lexical_cast<double>(parameter.GetValue(buff));
 		PrintMessage("%s : %lf \r\n", buff, pGripperProperty->positionResolution);	
 
 		//PositionOffset
@@ -338,7 +349,8 @@ bool DynamixelGripper::Setting( Property& parameter)
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
 		}
-		pGripperProperty->positionOffset = atof(parameter.GetValue(buff).c_str());
+		pGripperProperty->positionOffset
+			= boost::lexical_cast<double>(parameter.GetValue(buff));
 		PrintMessage("%s : %lf \r\n", buff, pGripperProperty->positionOffset);	
 
 		//MaximumPower
@@ -348,7 +360,8 @@ bool DynamixelGripper::Setting( Property& parameter)
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
 		}
-		pGripperProperty->maximumPower = atof(parameter.GetValue(buff).c_str());
+		pGripperProperty->maximumPower
+			= boost::lexical_cast<double>(parameter.GetValue(buff));
 		PrintMessage("%s : %lf \r\n", buff, pGripperProperty->maximumPower);	
 
 		//MaximumVelocity
@@ -358,7 +371,8 @@ bool DynamixelGripper::Setting( Property& parameter)
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
 		}
-		pGripperProperty->maximuVelocity = atof(parameter.GetValue(buff).c_str());
+		pGripperProperty->maximuVelocity
+			= boost::lexical_cast<double>(parameter.GetValue(buff));
 		PrintMessage("%s : %lf \r\n", buff, pGripperProperty->maximuVelocity);	
 
 		//MinimumPositionLimit
@@ -368,7 +382,8 @@ bool DynamixelGripper::Setting( Property& parameter)
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
 		}
-		pGripperProperty->minimumPositionLimit = atof(parameter.GetValue(buff).c_str());
+		pGripperProperty->minimumPositionLimit
+			= boost::lexical_cast<double>(parameter.GetValue(buff));
 		PrintMessage("%s : %lf \r\n", buff, pGripperProperty->minimumPositionLimit);	
 
 		//MaximumPositionLimit
@@ -378,7 +393,8 @@ bool DynamixelGripper::Setting( Property& parameter)
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
 		}
-		pGripperProperty->maximumPositionLimit = atof(parameter.GetValue(buff).c_str());
+		pGripperProperty->maximumPositionLimit
+			= boost::lexical_cast<double>(parameter.GetValue(buff));
 		PrintMessage("%s : %lf \r\n", buff, pGripperProperty->maximumPositionLimit);	
 
 		//MaximumLoad
@@ -388,7 +404,8 @@ bool DynamixelGripper::Setting( Property& parameter)
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
 		}
-		pGripperProperty->maximumLoad = atof(parameter.GetValue(buff).c_str());
+		pGripperProperty->maximumLoad
+			= boost::lexical_cast<double>(parameter.GetValue(buff));
 		PrintMessage("%s : %lf \r\n", buff, pGripperProperty->maximumLoad);	
 
 		PrintMessage("\r\n");	
