@@ -82,14 +82,14 @@ private:
 	bool Setting(Property& parameter);
 	bool EnableDynamixel(DynamixelUART& dynamixel, const DynamixelProperty& property);
 
-	inline unsigned short ConvertPowerUnitToDynamixel(const double& percent);
-	inline unsigned short ConvertPositionUnitToDynamixel(const double& degree, const double& offset, const double& resolution);
-	inline unsigned short ConvertVelocityUnitToDynamixel(const double& rpm);
+	static unsigned short ConvertPowerUnitToDynamixel(const double& percent);
+	static unsigned short ConvertPositionUnitToDynamixel(const double& degree, const double& offset, const double& resolution);
+	static unsigned short ConvertVelocityUnitToDynamixel(const double& rpm);
 
-	inline double ConvertPowerUnitToPercent(unsigned short dynamixelValue);
-	inline double ConvertPositionUnitToDegree(unsigned short dynamixelValue, const double& offset, const double& resolution);
-	inline double ConvertVelocityUnitToRPM(unsigned short dynamixelValue);
-	inline double ConvertLoadUnitToPercent(unsigned short dynamixelValue);
+	static double ConvertPowerUnitToPercent(unsigned short dynamixelValue);
+	static double ConvertPositionUnitToDegree(unsigned short dynamixelValue, const double& offset, const double& resolution);
+	static double ConvertVelocityUnitToRPM(unsigned short dynamixelValue);
+	static double ConvertLoadUnitToPercent(unsigned short dynamixelValue);
 
 private:
 	void GripperControlThreadHandler();
