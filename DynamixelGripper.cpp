@@ -698,8 +698,13 @@ int DynamixelGripper::RunHoming()
 	}
 
 	//모든 위치를 0으로 
-	vector<double> position(mDynamixelGroup.size() - 1);
+	vector<double> position(mDynamixelProperties.size() - 1);
 	vector<unsigned long> time(position.size());
+
+	for (size_t i = 0, end = position.size(); i < end; i++)
+	{
+		position[i] = mDynamixelProperties[i]->homePosition;
+	}
 
 	pUart->Lock();
 	if (SetPosition(position, time) != API_SUCCESS)
