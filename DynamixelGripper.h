@@ -31,6 +31,7 @@ protected:
 			, compliacneSlope(32), positionResolution(0.0), positionOffset(0.0)
 			, maximumPower(100.0), maximuVelocity(45.0)
 			, minimumPositionLimit(-180.0), maximumPositionLimit(180.0)
+			, homePosition(0.0)
 		{}
 
 		boost::shared_ptr<DynamixelUART> pDynamixel;
@@ -45,6 +46,7 @@ protected:
 		double maximuVelocity;
 		double minimumPositionLimit;
 		double maximumPositionLimit;
+		double homePosition;
 	};
 
 	struct GripperDynamixelProperty : public DynamixelProperty
@@ -105,7 +107,7 @@ private:
 	MessageQueue<GripperCommand> gripperMessageQueue;
 	boost::thread* gripperControlThread;
 
-	Uart* uart;
+	boost::scoped_ptr<Uart> pUart;
 	bool mIsGripped;
 
 	boost::shared_mutex mJointPositionMutex;

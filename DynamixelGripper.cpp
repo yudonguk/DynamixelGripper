@@ -11,7 +11,7 @@
 #include "DynamixelUARTDef.h"
 #include "DummyDynamixelUART.h"
 
-#define JOINT_COUNT				"JointCount"
+#define JOINT_COUNT				"Size"
 #define COUNTERCLOCKWISE_MODE	"CounterclockwiseMode" 
 #define DYNAMIXEL_ID			"DynamixelID"
 #define COMPLIANCE_MARGINE		"ComplianceMargine"
@@ -22,10 +22,11 @@
 #define MAXIMUM_VELOCITY		"MaximumVelocity"
 #define MINIMUM_POSITION_LIMIT	"MinimumPositionLimit"
 #define MAXIMUM_POSITION_LIMIT	"MaximumPositionLimit"
+#define HOME_POSITION			"HomePosition"
 #define MAXIMUM_LOAD			"MaximumLoad"
 
 DynamixelGripper::DynamixelGripper()
-	: uart(NULL), gripperControlThread(NULL), mIsGripped(false)
+	: pUart(NULL), gripperControlThread(NULL), mIsGripped(false)
 {}
 
 DynamixelGripper::~DynamixelGripper()
@@ -55,11 +56,10 @@ int DynamixelGripper::Finalize()
 
 	mDynamixelGroup.clear();
 
-	if(uart != NULL)
+	if(pUart != NULL)
 	{
-		uart->Finalize();
-		delete uart;
-		uart = NULL;
+		pUart->Finalize();
+		pUart.reset();
 	}
 
 	_status = DEVICE_CREATED;
@@ -150,21 +150,19 @@ int DynamixelGripper::Disable()
 
 bool DynamixelGripper::Setting( Property& parameter)
 {
-	if (uart != NULL)
+	if (pUart != NULL)
 	{
-		uart->Finalize();
-		delete uart;
-		uart = NULL;
+		pUart->Finalize();
 	}
 
-	uart = new SerialCommunicator;
+	pUart.reset(new SerialCommunicator);
 
-	if(uart->Initialize(parameter) != API_SUCCESS)
+	if(pUart->Initialize(parameter) != API_SUCCESS)
 	{
 		PrintMessage("Error : DynamixelManipulator::Setting()->Can't Initialize UART<< %s(%d)\r\n", __FILE__, __LINE__);
 		return false;
 	}
-	else if(uart->Enable() != API_SUCCESS)
+	else if(pUart->Enable() != API_SUCCESS)
 	{
 		PrintMessage("Error : DynamixelManipulator::Setting()->Can't Enable UART<< %s(%d)\r\n", __FILE__, __LINE__);
 		return false;
@@ -172,7 +170,7 @@ bool DynamixelGripper::Setting( Property& parameter)
 
 	mDynamixelProperties.clear();
 	mDynamixelGroup.clear();
-	mDynamixelGroup.SetUart(uart);
+	mDynamixelGroup.SetUart(pUart.get());
 
 	if (parameter.FindName(JOINT_COUNT) == false)
 	{
@@ -277,12 +275,19 @@ bool DynamixelGripper::Setting( Property& parameter)
 			= boost::lexical_cast<double>(parameter.GetValue(buff));
 		PrintMessage("%s : %lf \r\n", buff, pDynamixelProperty->maximumPositionLimit);
 
+		//HomePosition
+		sprintf(buff, "%s%d", HOME_POSITION, i);
+		if (parameter.FindName(buff)) 
+			pDynamixelProperty->homePosition
+			= boost::lexical_cast<double>(parameter.GetValue(buff));
+		PrintMessage("%s : %lf \r\n", buff, pDynamixelProperty->maximumPositionLimit);
+
 		PrintMessage("\r\n");
 		
 		if(pDynamixelProperty->id == DummyDynamixelUart::DUMMY_ID)
 			pDynamixelProperty->pDynamixel = boost::make_shared<DummyDynamixelUart>();
 		else
-			pDynamixelProperty->pDynamixel = boost::make_shared<DynamixelUART>(uart, pDynamixelProperty->id);
+			pDynamixelProperty->pDynamixel = boost::make_shared<DynamixelUART>(pUart.get(), pDynamixelProperty->id);
 
 		mDynamixelProperties.push_back(pDynamixelProperty);
 		mDynamixelGroup.push_back(pDynamixelProperty->pDynamixel);
@@ -413,7 +418,7 @@ bool DynamixelGripper::Setting( Property& parameter)
 
 		if (isEnoughGripperProperty)
 		{	
-			pGripperProperty->pDynamixel = boost::make_shared<DynamixelUART>(uart, pGripperProperty->id);
+			pGripperProperty->pDynamixel = boost::make_shared<DynamixelUART>(pUart.get(), pGripperProperty->id);
 		}
 		else
 		{
@@ -521,7 +526,7 @@ int DynamixelGripper::GetParameter( Property& parameter )
 		return API_ERROR;
 	}
 
-	if (uart->GetParameter(parameter) != API_SUCCESS)
+	if (pUart->GetParameter(parameter) != API_SUCCESS)
 	{
 		PrintMessage("Error : DynamixelManipulator::GetParameter()->Can't get parameter to UART.<< %s(%d)\r\n", __FILE__, __LINE__);
 		return API_ERROR;
@@ -574,6 +579,10 @@ int DynamixelGripper::GetParameter( Property& parameter )
 		//MaximumPositionLimit
 		sprintf(buff, "%s%d", MAXIMUM_POSITION_LIMIT, i);
 		parameter.SetValue(buff, boost::lexical_cast<std::string>(property.maximumPositionLimit));
+
+		//HomePosition
+		sprintf(buff, "%s%d", HOME_POSITION, i);
+		parameter.SetValue(buff, boost::lexical_cast<std::string>(property.homePosition));
 	}
 
 	{
@@ -643,10 +652,10 @@ int DynamixelGripper::OnExecute()
 	std::vector<double> jointPosition(mDynamixelProperties.size());
 	unsigned short rawGripperJointLoad = 0;
 
-	uart->Lock();
+	pUart->Lock();
 	size_t positionResult = mDynamixelGroup.GetPresentPosition(rawJointPosition);
 	bool resultOfGettingGripperLoad = (*mDynamixelGroup.rbegin())->GetPresentLoad(rawGripperJointLoad);
-	uart->Unlock();
+	pUart->Unlock();
 
 	for (size_t i = 0, end = mDynamixelProperties.size(); i < end; i++)
 	{
@@ -692,14 +701,14 @@ int DynamixelGripper::RunHoming()
 	vector<double> position(mDynamixelGroup.size() - 1);
 	vector<unsigned long> time(position.size());
 
-	uart->Lock();
+	pUart->Lock();
 	if (SetPosition(position, time) != API_SUCCESS)
 	{
 		PrintMessage("Error : DynamixelManipulator::StartHoming()->Can't StartHoming Dynamixel<< %s(%d)\r\n", __FILE__, __LINE__);
-		uart->Unlock();
+		pUart->Unlock();
 		return API_ERROR;
 	}
-	uart->Unlock();
+	pUart->Unlock();
 	return API_SUCCESS;
 }
 
@@ -714,11 +723,11 @@ int DynamixelGripper::Stop()
 	vector<double> position;
 	vector<unsigned long> time;
 
-	uart->Lock();
+	pUart->Lock();
 	if (GetPosition(position) != API_SUCCESS)
 	{
 		PrintMessage("Error : DynamixelManipulator::Stop()->Can't Stop Dynamixel.<< %s(%d)\r\n", __FILE__, __LINE__);
-		uart->Unlock();
+		pUart->Unlock();
 		return API_ERROR;
 	}
 
@@ -727,10 +736,10 @@ int DynamixelGripper::Stop()
 	if (SetPosition(position, time) != API_SUCCESS)
 	{
 		PrintMessage("Error : DynamixelManipulator::Stop()->Can't Stop Dynamixel.<< %s(%d)\r\n", __FILE__, __LINE__);
-		uart->Unlock();
+		pUart->Unlock();
 		return API_ERROR;
 	}
-	uart->Unlock();
+	pUart->Unlock();
 	return API_SUCCESS;
 }
 
@@ -742,14 +751,14 @@ int DynamixelGripper::EmergencyStop()
 		return API_ERROR;
 	}
 
-	uart->Lock();
+	pUart->Lock();
 	if (mDynamixelGroup.SetTorqueEnable(false) == false)
 	{
 		PrintMessage("Error : DynamixelManipulator::EmergencyStop()->Can't EmergencyStop Dynamixel.<< %s(%d)\r\n", __FILE__, __LINE__);
-		uart->Unlock();
+		pUart->Unlock();
 		return API_ERROR;
 	}
-	uart->Unlock();
+	pUart->Unlock();
 	return API_SUCCESS;
 }
 
@@ -783,14 +792,14 @@ int DynamixelGripper::SetPosition( vector<double> position, vector<unsigned long
 		, property.positionOffset, property.positionResolution);
 	}
 
-	uart->Lock();
+	pUart->Lock();
 	if (mDynamixelGroup.SetGoalPosition(dynamixelPositon) == false)
 	{
 		PrintMessage("Error : DynamixelManipulator::SetPosition()->Can't SetPosition Dynamixel<< %s(%d)\r\n", __FILE__, __LINE__);
-		uart->Unlock();
+		pUart->Unlock();
 		return API_ERROR;
 	}
-	uart->Unlock();
+	pUart->Unlock();
 
 	return API_SUCCESS;
 }
@@ -825,11 +834,11 @@ int DynamixelGripper::StartGripping()
 	if (property.id == DummyDynamixelUart::DUMMY_ID)
 		return API_NOT_SUPPORTED;
 
-	uart->Lock();
+	pUart->Lock();
 	property.pDynamixel->SetGoalPosition(ConvertPositionUnitToDynamixel(
 		(property.isCounterclockwiseMode ? 1.0 : -1.0) * property.maximumPositionLimit
 		, property.positionOffset, property.positionResolution));
-	uart->Unlock();
+	pUart->Unlock();
 
 	mIsGripped = true;
 
@@ -850,11 +859,11 @@ int DynamixelGripper::StopGripping()
 	if (property.id == DummyDynamixelUart::DUMMY_ID)
 		return API_NOT_SUPPORTED;
 
-	uart->Lock();
+	pUart->Lock();
 	property.pDynamixel->SetGoalPosition(ConvertPositionUnitToDynamixel(
 		(property.isCounterclockwiseMode ? 1.0 : -1.0) * property.minimumPositionLimit
 		, property.positionOffset, property.positionResolution));
-	uart->Unlock();
+	pUart->Unlock();
 
 	mIsGripped = false;
 	return API_SUCCESS;
@@ -949,10 +958,10 @@ void DynamixelGripper::GripperControlThreadHandler()
 				break;
 			case  STOP_GRIPPING:
 				{
-					uart->Lock();
+					pUart->Lock();
 					GripperDynamixelProperty& property = static_cast<GripperDynamixelProperty&>(**mDynamixelProperties.rbegin());
 					property.pDynamixel->SetGoalPosition(ConvertPositionUnitToDynamixel(property.minimumPositionLimit, property.positionOffset, property.positionResolution));
-					uart->Unlock();
+					pUart->Unlock();
 				}
 				break;
 			}
@@ -1040,4 +1049,5 @@ OprosApi* GetAPI()
 #undef MAXIMUM_VELOCITY
 #undef MINIMUM_POSITION_LIMIT
 #undef MAXIMUM_POSITION_LIMIT
+#undef HOME_POSITION
 #undef MAXIMUM_LOAD
