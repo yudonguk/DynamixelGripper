@@ -178,7 +178,7 @@ bool DynamixelGripper::Setting( Property& parameter)
 		PrintMessage("Error : DynamixelManipulator::Setting()->Can't find Size<< %s(%d)\r\n", __FILE__, __LINE__);
 		return false;
 	}
-	const size_t jointCount = atoi(parameter.GetValue("Size").c_str());
+	const size_t jointCount = atoi(parameter.GetValue(JOINT_COUNT).c_str());
 	
 	PrintMessage("\r\nDynamixelGripper Property Setting\r\n");
 
