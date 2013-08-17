@@ -275,13 +275,13 @@ bool DynamixelGripper::Setting( Property& parameter)
 		PrintMessage("%s : %lf \r\n", buff, dynamixelProperty.maximumPositionLimit);
 
 		PrintMessage("\r\n");
-
+		
 		if(dynamixelProperty.id == DummyDynamixelUart::DUMMY_ID)
-			dynamixelGroup.push_back(boost::make_shared<DummyDynamixelUart>());
+			dynamixelProperty.pDynamixel = boost::make_shared<DummyDynamixelUart>();
 		else
-			dynamixelGroup.push_back(boost::make_shared<DynamixelUART>(uart, dynamixelProperty.id));
+			dynamixelProperty.pDynamixel = boost::make_shared<DynamixelUART>(uart, dynamixelProperty.id);
 
-		dynamixelPropertyVector.push_back(dynamixelProperty);
+		dynamixelPropertyVector.push_back(dynamixelProperty.pDynamixel);
 	}
 
 	{
@@ -389,11 +389,10 @@ bool DynamixelGripper::Setting( Property& parameter)
 
 		PrintMessage("\r\n");	
 
+		dynamixelProperty.pDynamixel = boost::make_shared<DynamixelUART>(uart, gripperProperty.id);
 		gripperProperty = dynamixelProperty;
-
-		dynamixelGroup.push_back(boost::make_shared<DynamixelUART>(uart, gripperProperty.id));
+		dynamixelGroup.push_back(dynamixelProperty.pDynamixel);
 	}
-
 
 	return true;
 }
