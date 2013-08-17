@@ -1,5 +1,7 @@
 ﻿#include "DynamixelGripper.h"
 
+#include <algorithm>
+
 #include <device/ServoActuator.h>
 #include <device/OprosPrintMessage.h>
 
@@ -949,45 +951,42 @@ void DynamixelGripper::GripperControlThreadHandler()
 
 unsigned short DynamixelGripper::ConvertPowerUnitToDynamixel( const double& percent)
 {
-	opros_assert(!(percent < 0.00 || percent > 100.0));
-	unsigned short dynamixelValue = unsigned short(percent / 0.1);
-	return dynamixelValue > 1023 ? 1023 : dynamixelValue; 
+	int dynamixelValue = int(percent / 0.1);
+	return std::min(std::max(dynamixelValue, 0), 1023);
 }
 
 unsigned short DynamixelGripper::ConvertPositionUnitToDynamixel( const double& degree, const double& offset, const double& resolution)
 {
-	//opros_assert(!(degree > offset || degree < -offset));
-	unsigned short dynamixelValue = unsigned short((degree + offset) / resolution);
-	return dynamixelValue; 
+	int dynamixelValue = int((degree + offset) / resolution);
+	return std::min(std::max(dynamixelValue, 0), 4095);
 }
 
 unsigned short DynamixelGripper::ConvertVelocityUnitToDynamixel( const double& rpm )
 {
-	unsigned short dynamixelValue = unsigned short(rpm / 0.111);
-	return dynamixelValue > 1023 ? 1023 : dynamixelValue; 
+	int dynamixelValue = int(rpm / 0.111);
+	return std::min(std::max(dynamixelValue, 0), 1023);
 }
 
 double DynamixelGripper::ConvertPowerUnitToPercent( unsigned short dynamixelValue )
 {
-	opros_assert(!(dynamixelValue > 1023));
-	double percent = dynamixelValue * 0.1;
+	double percent = std::min(int(dynamixelValue), 1023) * 0.1;
 	return percent;
 }
 
 double DynamixelGripper::ConvertPositionUnitToDegree( unsigned short dynamixelValue, const double& offset, const double& resolution )
 {
-	double degree = dynamixelValue * resolution - offset;
+	double degree = std::min(std::max(int(dynamixelValue), 0), 4095) * resolution - offset;
 	return degree;
 }
 
 double DynamixelGripper::ConvertVelocityUnitToRPM( unsigned short dynamixelValue )
 {
-	return dynamixelValue * 0.111;
+	return std::min(std::max(int(dynamixelValue), 0), 1023) * 0.111;
 }
 
 double DynamixelGripper::ConvertLoadUnitToPercent( unsigned short dynamixelValue )
 {
-	opros_assert(!(dynamixelValue < 0 || dynamixelValue > 2047));
+	dynamixelValue = std::min(std::max(int(dynamixelValue & 0x3FF), 0), 2047);
 	double percent = (dynamixelValue & 0x3FF) * 0.1 * (dynamixelValue & 0x400 ? -1 : 1);
 	return percent;
 }
