@@ -10,6 +10,7 @@
 
 #include "DynamixelUART.h"
 #include "DynamixelGroup.h"
+#include "DummyDynamixelUART.h"
 
 #include "MessageQueue.h"
 
@@ -25,10 +26,11 @@ protected:
 	struct DynamixelProperty
 	{
 		DynamixelProperty(boost::shared_ptr<DynamixelUART>& pDynamixel_ = boost::shared_ptr<DynamixelUART>())
-			: pDynamixel(pDynamixel_), isCounterclockwiseMode(true), id(0), maximumPower(0.0), maximuVelocity(0.0)
-			, complianceMargine(0), compliacneSlope(0)
-			, minimumPositionLimit(0.0), maximumPositionLimit(0.0)
-			, positionResolution(0.0), positionOffset(0.0)
+			: pDynamixel(pDynamixel_), isCounterclockwiseMode(true)
+			, id(DummyDynamixelUart::DUMMY_ID), complianceMargine(1)
+			, compliacneSlope(32), positionResolution(0.0), positionOffset(0.0)
+			, maximumPower(100.0), maximuVelocity(45.0)
+			, minimumPositionLimit(-180.0), maximumPositionLimit(180.0)
 		{}
 
 		boost::shared_ptr<DynamixelUART> pDynamixel;
