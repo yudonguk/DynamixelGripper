@@ -291,7 +291,7 @@ bool DynamixelGripper::Setting( Property& parameter)
 	{
 		boost::shared_ptr<GripperDynamixelProperty> pGripperProperty = boost::make_shared<GripperDynamixelProperty>();
 
-		bool isEnoughGripperProperty = false;
+		bool isEnoughGripperProperty = true;
 
 		//CounterclockwiseMode
 		sprintf(buff, "Gripper%s", COUNTERCLOCKWISE_MODE);
