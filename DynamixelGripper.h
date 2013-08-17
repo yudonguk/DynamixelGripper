@@ -96,10 +96,9 @@ private:
 
 private:
 	// dynamixelGroup의 마지막 원소는 그리퍼의 조인트를 가르킨다.
-	DynamixelGroup dynamixelGroup;
-	vector<DynamixelProperty> dynamixelPropertyVector;
-
-	GripperDynamixelProperty gripperProperty;
+	DynamixelGroup mDynamixelGroup;
+	std::vector<DynamixelProperty> mJointProperties;
+	GripperDynamixelProperty mGripperProperty;
 
 	MessageQueue<GripperCommand> gripperMessageQueue;
 	boost::thread* gripperControlThread;
