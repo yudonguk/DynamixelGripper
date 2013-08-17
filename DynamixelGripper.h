@@ -24,13 +24,15 @@ public:
 protected:
 	struct DynamixelProperty
 	{
-		DynamixelProperty()
-			: id(0), maximumPower(0.0), maximuVelocity(0.0)
+		DynamixelProperty(boost::shared_ptr<DynamixelUART>& pDynamixel_ = boost::shared_ptr<DynamixelUART>())
+			: pDynamixel(pDynamixel_), id(0), maximumPower(0.0), maximuVelocity(0.0)
 			, complianceMargine(0), compliacneSlope(0)
 			, minimumPositionLimit(0.0), maximumPositionLimit(0.0)
 			, positionResolution(0.0), positionOffset(0.0)
 		{}
 
+		boost::shared_ptr<DynamixelUART> pDynamixel;
+		
 		unsigned char id;
 		unsigned char complianceMargine;
 		unsigned char compliacneSlope;
@@ -44,8 +46,8 @@ protected:
 
 	struct GripperDynamixelProperty : public DynamixelProperty
 	{
-		GripperDynamixelProperty()
-			: maximumLoad(0.0)
+		GripperDynamixelProperty(boost::shared_ptr<DynamixelUART>& pDynamixel_ = boost::shared_ptr<DynamixelUART>())
+			: DynamixelProperty(pDynamixel_), maximumLoad(0.0)
 		{}
 
 		double maximumLoad;
@@ -80,24 +82,22 @@ private:
 	bool Setting(Property& parameter);
 	bool EnableDynamixel(DynamixelUART& dynamixel, const DynamixelProperty& property);
 
-	inline unsigned short ConvertPowerUnitToDynamixel(const double& percent);
-	inline unsigned short ConvertPositionUnitToDynamixel(const double& degree, const double& offset, const double& resolution);
-	inline unsigned short ConvertVelocityUnitToDynamixel(const double& rpm);
+	static unsigned short ConvertPowerUnitToDynamixel(const double& percent);
+	static unsigned short ConvertPositionUnitToDynamixel(const double& degree, const double& offset, const double& resolution);
+	static unsigned short ConvertVelocityUnitToDynamixel(const double& rpm);
 
-	inline double ConvertPowerUnitToPercent(unsigned short dynamixelValue);
-	inline double ConvertPositionUnitToDegree(unsigned short dynamixelValue, const double& offset, const double& resolution);
-	inline double ConvertVelocityUnitToRPM(unsigned short dynamixelValue);
-	inline double ConvertLoadUnitToPercent(unsigned short dynamixelValue);
+	static double ConvertPowerUnitToPercent(unsigned short dynamixelValue);
+	static double ConvertPositionUnitToDegree(unsigned short dynamixelValue, const double& offset, const double& resolution);
+	static double ConvertVelocityUnitToRPM(unsigned short dynamixelValue);
+	static double ConvertLoadUnitToPercent(unsigned short dynamixelValue);
 
 private:
 	void GripperControlThreadHandler();
 
 private:
-	// dynamixelGroup의 마지막 원소는 그리퍼의 조인트를 가르킨다.
-	DynamixelGroup dynamixelGroup;
-	vector<DynamixelProperty> dynamixelPropertyVector;
-
-	GripperDynamixelProperty gripperProperty;
+	// mDynamixelGroup과 mDynamixelProperties의 마지막 원소는 그리퍼의 조인트를 가르킨다.
+	DynamixelGroup mDynamixelGroup;
+	std::vector<boost::shared_ptr<DynamixelProperty>> mDynamixelProperties;
 
 	MessageQueue<GripperCommand> gripperMessageQueue;
 	boost::thread* gripperControlThread;
