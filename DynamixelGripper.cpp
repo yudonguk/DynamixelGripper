@@ -666,7 +666,8 @@ int DynamixelGripper::OnExecute()
 		DynamixelProperty& property = *mDynamixelProperties[i];
 
 		// 단위계 변환
-		jointPosition[i] = ConvertPositionUnitToDegree(rawJointPosition[i]
+		jointPosition[i] = (property.isCounterclockwiseMode ? 1.0 : -1.0) 
+			* ConvertPositionUnitToDegree(rawJointPosition[i]
 		, property.positionOffset, property.positionResolution);
 	}
 
@@ -777,7 +778,8 @@ int DynamixelGripper::SetPosition( vector<double> position, vector<unsigned long
 	for (size_t i = 0, end = dynamixelPositon.size();  i < end; i++)
 	{
 		DynamixelProperty& property = *mDynamixelProperties[i];
-		dynamixelPositon[i] = ConvertPositionUnitToDynamixel(position[i]
+		dynamixelPositon[i] = ConvertPositionUnitToDynamixel(
+			(property.isCounterclockwiseMode ? 1.0 : -1.0) * position[i]
 		, property.positionOffset, property.positionResolution);
 	}
 
@@ -804,7 +806,6 @@ int DynamixelGripper::GetPosition( vector<double> &position )
 	boost::shared_lock<boost::shared_mutex> lock(mJointPositionMutex);
 
 	// mJointPosition의 마지막 원소는 그리퍼 조인트의 위치 이므로,
-	// GetPosition() 에서는 그리퍼 조인트의 위치를 반환하지 않는다.
 	position.resize(mJointPosition.size() - 1);
 	std::copy(mJointPosition.begin(), mJointPosition.end() - 1, position.begin());
 
@@ -826,7 +827,8 @@ int DynamixelGripper::StartGripping()
 
 	uart->Lock();
 	property.pDynamixel->SetGoalPosition(ConvertPositionUnitToDynamixel(
-		property.maximumPositionLimit, property.positionOffset, property.positionResolution));
+		(property.isCounterclockwiseMode ? 1.0 : -1.0) * property.maximumPositionLimit
+		, property.positionOffset, property.positionResolution));
 	uart->Unlock();
 
 	mIsGripped = true;
@@ -850,7 +852,8 @@ int DynamixelGripper::StopGripping()
 
 	uart->Lock();
 	property.pDynamixel->SetGoalPosition(ConvertPositionUnitToDynamixel(
-		property.minimumPositionLimit, property.positionOffset, property.positionResolution));
+		(property.isCounterclockwiseMode ? 1.0 : -1.0) * property.minimumPositionLimit
+		, property.positionOffset, property.positionResolution));
 	uart->Unlock();
 
 	mIsGripped = false;
@@ -922,7 +925,7 @@ void DynamixelGripper::GripperControlThreadHandler()
 
 							mJointPositionMutex.lock_shared();
 
-							double presentLoad = mGripperJointLoad;
+							double presentLoad = (property.isCounterclockwiseMode ? 1.0 : -1.0) * mGripperJointLoad;
 							double presentPosition = *mJointPosition.rbegin();
 
 							mJointPositionMutex.unlock_shared();
@@ -936,7 +939,7 @@ void DynamixelGripper::GripperControlThreadHandler()
 							double positionDifference = (property.maximumPositionLimit - property.minimumPositionLimit) / 7 * (loadDifference / property.maximumLoad);
 
 							DynamixelUART& gripper = **mDynamixelGroup.rbegin();
-							gripper.SetGoalPosition(ConvertPositionUnitToDynamixel(presentPosition + positionDifference, property.positionOffset, property.positionResolution));
+							gripper.SetGoalPosition(ConvertPositionUnitToDynamixel((property.isCounterclockwiseMode ? 1.0 : -1.0) * (presentPosition + positionDifference), property.positionOffset, property.positionResolution));
 						}
 					}
 					catch(...)
