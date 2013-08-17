@@ -494,6 +494,8 @@ int DynamixelGripper::GetParameter( Property& parameter )
 		PrintMessage("Error : DynamixelManipulator::GetParameter()->Can't get parameter to UART.<< %s(%d)\r\n", __FILE__, __LINE__);
 		return API_ERROR;
 	}
+
+	parameter.SetValue(JOINT_COUNT, boost::lexical_cast<std::string>(mDynamixelProperties.size() - 1));
 	
 	char buff[100] = {0, };
 
