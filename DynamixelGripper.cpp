@@ -643,13 +643,13 @@ int DynamixelGripper::OnExecute()
 	unsigned short rawGripperJointLoad = 0;
 
 	uart->Lock();
-	size_t error = mDynamixelGroup.GetPresentPosition(rawJointPosition);
+	size_t positionResult = mDynamixelGroup.GetPresentPosition(rawJointPosition);
 	bool resultOfGettingGripperLoad = (*mDynamixelGroup.rbegin())->GetPresentLoad(rawGripperJointLoad);
 	uart->Unlock();
 
 	for (size_t i = 0, end = mDynamixelProperties.size(); i < end; i++)
 	{
-		if (error & (1 << i))
+		if (!(positionResult & (1 << i)))
 		{
 			mJointPositionMutex.lock_shared();
 
