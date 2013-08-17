@@ -32,8 +32,8 @@ int DynamixelGripper::Initialize( Property parameter )
 		return API_ERROR;
 	}
 
-	mJointPosition.resize(mDynamixelGroup.size());
-	mDesiredJointPosition.resize(mDynamixelGroup.size());
+	mJointPosition.resize(mDynamixelProperties.size());
+	mDesiredJointPosition.resize(mDynamixelProperties.size());
 
 	_status = DEVICE_READY;
 	return API_SUCCESS;
@@ -649,7 +649,7 @@ int DynamixelGripper::RunHoming()
 	}
 
 	//모든 위치를 0으로 
-	std::vector<double> position(mDynamixelGroup.size() - 1);
+	std::vector<double> position(mDynamixelProperties.size() - 1);
 	std::vector<unsigned long> time(position.size());
 
 	if (SetPosition(position,time) != API_SUCCESS)
@@ -714,7 +714,7 @@ int DynamixelGripper::SetPosition( vector<double> position, vector<unsigned long
 		return API_ERROR;
 	}
 
-	if (position.size() != mDynamixelGroup.size() - 1)
+	if (position.size() != mDynamixelProperties.size() - 1)
 	{
 		PrintMessage("Error : DynamixelManipulator::SetPosition()->position size must be equal Dynamixel count<< %s(%d)\r\n", __FILE__, __LINE__);
 		return API_ERROR;
@@ -759,11 +759,10 @@ int DynamixelGripper::StartGripping()
 		return API_ERROR;
 	}
 
-	DynamixelUART& gripper = **mDynamixelGroup.rbegin();
-
+	GripperDynamixelProperty& property = static_cast<GripperDynamixelProperty&>(**mDynamixelProperties.rbegin());
+	
 	uart->Lock();
-	GripperDynamixelProperty& gripperProperty = static_cast<GripperDynamixelProperty&>(**mDynamixelProperties.rbegin());
-	gripper.SetGoalPosition(ConvertPositionUnitToDynamixel(gripperProperty.maximumPositionLimit, gripperProperty.positionOffset, gripperProperty.positionResolution));
+	property.pDynamixel->SetGoalPosition(ConvertPositionUnitToDynamixel(property.maximumPositionLimit, property.positionOffset, property.positionResolution));
 	uart->Unlock();
 
 	mIsGripped = true;
@@ -780,11 +779,10 @@ int DynamixelGripper::StopGripping()
 	}
 
 	//gripperMessageQueue.Push(STOP_GRIPPING);
-	DynamixelUART& gripper = **mDynamixelGroup.rbegin();
+	GripperDynamixelProperty& property = static_cast<GripperDynamixelProperty&>(**mDynamixelProperties.rbegin());
 
 	uart->Lock();
-	GripperDynamixelProperty& property = static_cast<GripperDynamixelProperty&>(**mDynamixelProperties.rbegin());
-	gripper.SetGoalPosition(ConvertPositionUnitToDynamixel(property.minimumPositionLimit, property.positionOffset, property.positionResolution));
+	property.pDynamixel->SetGoalPosition(ConvertPositionUnitToDynamixel(property.minimumPositionLimit, property.positionOffset, property.positionResolution));
 	uart->Unlock();
 
 	mIsGripped = false;
@@ -859,17 +857,16 @@ double DynamixelGripper::ConvertLoadUnitToPercent( unsigned short dynamixelValue
 
 void DynamixelGripper::UpdateJointState()
 {
-	const size_t dynamixelCount = mDynamixelGroup.size();
 	std::vector<unsigned short> rawJointPosition;
-	std::vector<double> jointPosition(dynamixelCount);
+	std::vector<double> jointPosition(mJointPosition.size());
 	unsigned short rawGripperJointLoad = 0;
 
 	uart->Lock();
 	size_t error = mDynamixelGroup.GetPresentPosition(rawJointPosition);
-	bool resultOfGettingGripperLoad = (*mDynamixelGroup.rbegin())->GetPresentLoad(rawGripperJointLoad);
+	bool resultOfGettingGripperLoad = (*mDynamixelProperties.rbegin())->pDynamixel->GetPresentLoad(rawGripperJointLoad);
 	uart->Unlock();
 
-	for (size_t i = 0; i < dynamixelCount; i++)
+	for (size_t i = 0, end = mDynamixelProperties.size(); i < end; i++)
 	{
 		if (error & (1 << i))
 		{
@@ -884,10 +881,11 @@ void DynamixelGripper::UpdateJointState()
 			continue;
 		}
 
+		DynamixelProperty& property = *mDynamixelProperties[i];
+
 		// 단위계 변환
 		jointPosition[i] = ConvertPositionUnitToDegree(rawJointPosition[i]
-		, mDynamixelProperties[i]->positionOffset
-			, mDynamixelProperties[i]->positionResolution);
+		, property.positionOffset, property.positionResolution);
 	}
 
 	boost::unique_lock<boost::shared_mutex> lock(mJointPositionMutex);
