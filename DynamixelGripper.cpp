@@ -12,6 +12,7 @@
 #include "DummyDynamixelUART.h"
 
 #define JOINT_COUNT				"JointCount"
+#define COUNTERCLOCKWISE_MODE	"CounterclockwiseMode" 
 #define DYNAMIXEL_ID			"DynamixelID"
 #define COMPLIANCE_MARGINE		"ComplianceMargine"
 #define COMPLIANCE_SLOPE		"ComplianceSlope"
@@ -187,6 +188,13 @@ bool DynamixelGripper::Setting( Property& parameter)
 	{
 		boost::shared_ptr<DynamixelProperty> pDynamixelProperty = boost::make_shared<DynamixelProperty>();
 
+		//CounterclockwiseMode
+		sprintf(buff, "%s%d", COUNTERCLOCKWISE_MODE, i);
+		if (parameter.FindName(buff)) 
+			pDynamixelProperty->isCounterclockwiseMode 
+			= boost::lexical_cast<bool>(parameter.GetValue(buff));
+		PrintMessage("%s : %s \r\n", buff, pDynamixelProperty->isCounterclockwiseMode ? "true" : "false");
+
 		//DynamixelID
 		sprintf(buff, "%s%d", DYNAMIXEL_ID, i);
 		if (parameter.FindName(buff) == false) 
@@ -300,6 +308,13 @@ bool DynamixelGripper::Setting( Property& parameter)
 		boost::shared_ptr<GripperDynamixelProperty> pGripperProperty = boost::make_shared<GripperDynamixelProperty>();
 
 		bool isEnoughGripperProperty = false;
+
+		//CounterclockwiseMode
+		sprintf(buff, "Gripper%s", COUNTERCLOCKWISE_MODE);
+		if (parameter.FindName(buff)) 
+			pGripperProperty->isCounterclockwiseMode 
+			= boost::lexical_cast<bool>(parameter.GetValue(buff));
+		PrintMessage("%s : %s \r\n", buff, pGripperProperty->isCounterclockwiseMode ? "true" : "false");
 
 		//DynamixelID
 		sprintf(buff, "Gripper%s", DYNAMIXEL_ID);
@@ -563,6 +578,10 @@ int DynamixelGripper::GetParameter( Property& parameter )
 	for (size_t i = 0, end = mDynamixelProperties.size() - 1;  i < end; i++)
 	{
 		DynamixelProperty& property = *mDynamixelProperties[i];
+
+		//CounterclockwiseMode
+		sprintf(buff, "%s%d", COUNTERCLOCKWISE_MODE, i);
+		parameter.SetValue(buff, boost::lexical_cast<std::string>(property.isCounterclockwiseMode));
 		
 		//DynamixelID
 		sprintf(buff, "%s%d", DYNAMIXEL_ID, i);
@@ -607,6 +626,10 @@ int DynamixelGripper::GetParameter( Property& parameter )
 		
 		if (property.id == DummyDynamixelUart::DUMMY_ID)
 		{
+			//CounterclockwiseMode
+			sprintf(buff, "Gripper%s", COUNTERCLOCKWISE_MODE);
+			parameter.SetValue(buff, boost::lexical_cast<std::string>(property.isCounterclockwiseMode));
+
 			//DynamixelID
 			sprintf(buff, "Gripper%s", DYNAMIXEL_ID);
 			parameter.SetValue(buff, boost::lexical_cast<std::string>(property.id));
@@ -1048,6 +1071,7 @@ OprosApi* GetAPI()
 #endif
 
 #undef JOINT_COUNT
+#undef COUNTERCLOCKWISE_MODE
 #undef DYNAMIXEL_ID
 #undef COMPLIANCE_MARGINE
 #undef COMPLIANCE_SLOPE
