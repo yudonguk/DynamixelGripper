@@ -30,7 +30,7 @@
 #define HOME_POSITION			"HomePosition"
 #define MAXIMUM_LOAD			"MaximumLoad"
 #define LOAD_CONTROL_P_GAIN		"LoadControlPGain"
-#define LOAD_CONTROL_I_GAIN		"LoadControlPGain"
+#define LOAD_CONTROL_I_GAIN		"LoadControlIGain"
 
 DynamixelGripper::DynamixelGripper()
 	: pUart(NULL), mIsGripped(false)
