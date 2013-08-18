@@ -47,11 +47,7 @@ int DynamixelGripper::Initialize( Property parameter )
 		_status = DEVICE_ERROR;
 		return API_ERROR;
 	}
-
-	mJointPosition.resize(mDynamixelProperties.size());
-	mDesiredJointPosition.resize(mDynamixelProperties.size());
-	mGripperCommand = STOP_GRIPPING;
-
+	
 	_status = DEVICE_READY;
 	return API_SUCCESS;
 }
@@ -62,6 +58,7 @@ int DynamixelGripper::Finalize()
 		Disable();
 
 	mDynamixelGroup.clear();
+	mDynamixelProperties.clear();
 
 	if(uart != NULL)
 	{
@@ -455,6 +452,12 @@ bool DynamixelGripper::Setting( Property& parameter)
 		mDynamixelProperties.push_back(pGripperProperty);
 		mDynamixelGroup.push_back(pGripperProperty->pDynamixel);
 	}
+
+	mJointPosition.clear();
+	mDesiredJointPosition.clear();
+	mJointPosition.resize(mDynamixelProperties.size());
+	mDesiredJointPosition.resize(mDynamixelProperties.size());
+	mGripperCommand = STOP_GRIPPING;
 
 	return true;
 }
