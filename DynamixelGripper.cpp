@@ -432,8 +432,8 @@ bool DynamixelGripper::Setting( Property& parameter)
 
 		PrintMessage("\r\n");	
 
-		mDynamixelProperties.push_back(pProperty);
-		mDynamixelGroup.push_back(pProperty->pDynamixel);
+		dynamixelProperties.push_back(pProperty);
+		dynamixelGroup.push_back(pProperty->pDynamixel);
 	}
 
 	boost::unique_lock<boost::shared_mutex> lock(mJointStateMutex);
