@@ -32,6 +32,9 @@ protected:
 	bool ReadWord (unsigned char index, unsigned short *data);
 
 public:
+	Uart* SetUart(Uart* pUart);
+
+public:
 	bool GetModelNumber(unsigned short &modelNumber);
 	bool GetFirmwareVersion(unsigned char &firmwareVersion);
 	bool SetID(unsigned char id);
