@@ -49,11 +49,7 @@ int DynamixelGripper::Initialize( Property parameter )
 		_status = DEVICE_ERROR;
 		return API_ERROR;
 	}
-
-	mJointPosition.resize(mDynamixelProperties.size());
-	mDesiredJointPosition.resize(mDynamixelProperties.size());
-	mGripperCommand = STOP_GRIPPING;
-
+	
 	_status = DEVICE_READY;
 	return API_SUCCESS;
 }
@@ -64,6 +60,7 @@ int DynamixelGripper::Finalize()
 		Disable();
 
 	mDynamixelGroup.clear();
+	mDynamixelProperties.clear();
 
 	if(pUart != NULL)
 	{
@@ -462,6 +459,12 @@ bool DynamixelGripper::Setting( Property& parameter)
 		mDynamixelGroup.push_back(pGripperProperty->pDynamixel);
 	}
 
+	mJointPosition.clear();
+	mDesiredJointPosition.clear();
+	mJointPosition.resize(mDynamixelProperties.size());
+	mDesiredJointPosition.resize(mDynamixelProperties.size());
+	mGripperCommand = STOP_GRIPPING;
+
 	return true;
 }
 
@@ -817,12 +820,9 @@ int DynamixelGripper::StartGripping()
 	if (property.id == DummyDynamixelUart::DUMMY_ID)
 		return API_NOT_SUPPORTED;
 
-	pUart->Lock();
-	property.pDynamixel->SetGoalPosition(ConvertPositionUnitToDynamixel(
-		(property.isCounterclockwiseMode ? 1.0 : -1.0) * property.maximumPositionLimit
-		, property.positionOffset, property.positionResolution));
-	pUart->Unlock();
-
+	boost::unique_lock<boost::shared_mutex> lock(mJointPositionMutex);
+	mGripperCommand = START_GRIPPING;
+	
 	mIsGripped = true;
 
 	return API_SUCCESS;
@@ -836,16 +836,12 @@ int DynamixelGripper::StopGripping()
 		return API_ERROR;
 	}
 
-	//gripperMessageQueue.Push(STOP_GRIPPING);
 	GripperDynamixelProperty& property = static_cast<GripperDynamixelProperty&>(**mDynamixelProperties.rbegin());
 	if (property.id == DummyDynamixelUart::DUMMY_ID)
 		return API_NOT_SUPPORTED;
 
-	pUart->Lock();
-	property.pDynamixel->SetGoalPosition(ConvertPositionUnitToDynamixel(
-		(property.isCounterclockwiseMode ? 1.0 : -1.0) * property.minimumPositionLimit
-		, property.positionOffset, property.positionResolution));
-	pUart->Unlock();
+	boost::unique_lock<boost::shared_mutex> lock(mJointPositionMutex);
+	mGripperCommand = STOP_GRIPPING;
 
 	mIsGripped = false;
 	return API_SUCCESS;
