@@ -114,7 +114,7 @@ private:
 private:
 	boost::shared_mutex mJointStateMutex;
 
-	boost::scoped_ptr<Uart> pUart;
+	boost::scoped_ptr<Uart> mpUart;
 	bool mIsGripped;
 
 	// mDynamixelGroup과 mDynamixelProperties의 마지막 원소는 그리퍼의 조인트를 가르킨다.
