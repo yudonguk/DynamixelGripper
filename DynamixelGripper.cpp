@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <device/ServoActuator.h>
 #include <device/OprosPrintMessage.h>
@@ -189,8 +190,8 @@ bool DynamixelGripper::Setting( Property& parameter)
 		//CounterclockwiseMode
 		sprintf(buff, "%s%d", COUNTERCLOCKWISE_MODE, i);
 		if (parameter.FindName(buff)) 
-			pDynamixelProperty->isCounterclockwiseMode 
-			= boost::lexical_cast<bool>(parameter.GetValue(buff));
+			pDynamixelProperty->isCounterclockwiseMode
+			= boost::iequals(parameter.GetValue(buff), "true") ? true : false;
 		PrintMessage("%s : %s \r\n", buff, pDynamixelProperty->isCounterclockwiseMode ? "true" : "false");
 
 		//DynamixelID
@@ -200,21 +201,21 @@ bool DynamixelGripper::Setting( Property& parameter)
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
 		}
-		pDynamixelProperty->id = boost::lexical_cast<unsigned char>(parameter.GetValue(buff));
+		pDynamixelProperty->id = boost::lexical_cast<int>(parameter.GetValue(buff));
 		PrintMessage("%s : %d \r\n", buff, pDynamixelProperty->id);
 
 		//ComplianceMargine
 		sprintf(buff, "%s%d", COMPLIANCE_MARGINE, i);
 		if (parameter.FindName(buff)) 
 			pDynamixelProperty->complianceMargine
-			= boost::lexical_cast<unsigned char>(parameter.GetValue(buff));
+			= boost::lexical_cast<int>(parameter.GetValue(buff));
 		PrintMessage("%s : %d \r\n", buff, pDynamixelProperty->complianceMargine);
 
 		//ComplianceSlope
 		sprintf(buff, "%s%d", COMPLIANCE_SLOPE, i);
 		if (parameter.FindName(buff)) 
 			pDynamixelProperty->compliacneSlope
-			= boost::lexical_cast<unsigned char>(parameter.GetValue(buff));
+			= boost::lexical_cast<int>(parameter.GetValue(buff));
 		PrintMessage("%s : %d \r\n", buff, pDynamixelProperty->compliacneSlope);
 
 		//PositionResolution
@@ -302,7 +303,7 @@ bool DynamixelGripper::Setting( Property& parameter)
 		sprintf(buff, "Gripper%s", COUNTERCLOCKWISE_MODE);
 		if (parameter.FindName(buff)) 
 			pGripperProperty->isCounterclockwiseMode 
-			= boost::lexical_cast<bool>(parameter.GetValue(buff));
+			= boost::iequals(parameter.GetValue(buff), "true") ? true : false;;
 		PrintMessage("%s : %s \r\n", buff, pGripperProperty->isCounterclockwiseMode ? "true" : "false");
 
 		//DynamixelID
@@ -314,7 +315,7 @@ bool DynamixelGripper::Setting( Property& parameter)
 		}
 		else
 		{
-			pGripperProperty->id = boost::lexical_cast<unsigned char>(parameter.GetValue(buff));
+			pGripperProperty->id = boost::lexical_cast<int>(parameter.GetValue(buff));
 			PrintMessage("%s : %d \r\n", buff, pGripperProperty->id);	
 		}
 		
@@ -322,14 +323,14 @@ bool DynamixelGripper::Setting( Property& parameter)
 		sprintf(buff, "Gripper%s", COMPLIANCE_MARGINE);
 		if (parameter.FindName(buff)) 
 			pGripperProperty->complianceMargine
-			= boost::lexical_cast<unsigned char>(parameter.GetValue(buff));
+			= boost::lexical_cast<int>(parameter.GetValue(buff));
 		PrintMessage("%s : %d \r\n", buff, pGripperProperty->complianceMargine);	
 		
 		//ComplianceSlope
 		sprintf(buff, "Gripper%s", COMPLIANCE_SLOPE);
 		if (parameter.FindName(buff)) 
 			pGripperProperty->compliacneSlope
-			= boost::lexical_cast<unsigned char>(parameter.GetValue(buff));
+			= boost::lexical_cast<int>(parameter.GetValue(buff));
 		PrintMessage("%s : %d \r\n", buff, pGripperProperty->compliacneSlope);	
 
 		//PositionResolution
@@ -542,19 +543,19 @@ int DynamixelGripper::GetParameter( Property& parameter )
 
 		//CounterclockwiseMode
 		sprintf(buff, "%s%d", COUNTERCLOCKWISE_MODE, i);
-		parameter.SetValue(buff, boost::lexical_cast<std::string>(property.isCounterclockwiseMode));
+		parameter.SetValue(buff, property.isCounterclockwiseMode ? "true" : "false");
 		
 		//DynamixelID
 		sprintf(buff, "%s%d", DYNAMIXEL_ID, i);
-		parameter.SetValue(buff, boost::lexical_cast<std::string>(property.id));
+		parameter.SetValue(buff, boost::lexical_cast<std::string>(int(property.id)));
 		
 		//ComplianceMargine
 		sprintf(buff, "%s%d", COMPLIANCE_MARGINE, i);
-		parameter.SetValue(buff, boost::lexical_cast<std::string>(property.complianceMargine));
+		parameter.SetValue(buff, boost::lexical_cast<std::string>(int(property.complianceMargine)));
 
 		//ComplianceSlope
 		sprintf(buff, "%s%d", COMPLIANCE_SLOPE, i);
-		parameter.SetValue(buff, boost::lexical_cast<std::string>(property.compliacneSlope));
+		parameter.SetValue(buff, boost::lexical_cast<std::string>(int(property.compliacneSlope)));
 
 		//PositionResolution
 		sprintf(buff, "%s%d", POSITION_RESOLUTION, i);
@@ -593,19 +594,19 @@ int DynamixelGripper::GetParameter( Property& parameter )
 		{
 			//CounterclockwiseMode
 			sprintf(buff, "Gripper%s", COUNTERCLOCKWISE_MODE);
-			parameter.SetValue(buff, boost::lexical_cast<std::string>(property.isCounterclockwiseMode));
+			parameter.SetValue(buff, property.isCounterclockwiseMode ? "true" : "false");
 
 			//DynamixelID
 			sprintf(buff, "Gripper%s", DYNAMIXEL_ID);
-			parameter.SetValue(buff, boost::lexical_cast<std::string>(property.id));
+			parameter.SetValue(buff, boost::lexical_cast<std::string>(int(property.id)));
 
 			//ComplianceMargine
 			sprintf(buff, "Gripper%s", COMPLIANCE_MARGINE);
-			parameter.SetValue(buff, boost::lexical_cast<std::string>(property.complianceMargine));
+			parameter.SetValue(buff, boost::lexical_cast<std::string>(int(property.complianceMargine)));
 
 			//ComplianceSlope
 			sprintf(buff, "Gripper%s", COMPLIANCE_SLOPE);
-			parameter.SetValue(buff, boost::lexical_cast<std::string>(property.compliacneSlope));
+			parameter.SetValue(buff, boost::lexical_cast<std::string>(int(property.compliacneSlope)));
 
 			//PositionResolution
 			sprintf(buff, "Gripper%s", POSITION_RESOLUTION);
