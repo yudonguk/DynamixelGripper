@@ -965,7 +965,7 @@ void DynamixelGripper::UpdateJointState()
 	}
 
 	boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(upgradeLock);
-	mJointPosition = std::move(jointPosition);
+	mJointPosition = boost::move(jointPosition);
 	// 그리퍼 조인트의 하중을 얻어왔을 경우에만 갱신
 	if(resultOfGettingGripperLoad)
 		mGripperJointLoad = (gripperProperty.isCounterclockwiseMode ? 1.0 : -1.0)
