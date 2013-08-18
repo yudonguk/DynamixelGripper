@@ -33,7 +33,7 @@
 #define LOAD_CONTROL_I_GAIN		"LoadControlIGain"
 
 DynamixelGripper::DynamixelGripper()
-	: pUart(NULL), mIsGripped(false)
+	: mpUart(NULL), mIsGripped(false)
 {}
 
 DynamixelGripper::~DynamixelGripper()
@@ -259,7 +259,7 @@ bool DynamixelGripper::Setting( Property& parameter)
 		if(pProperty->id == DummyDynamixelUart::DUMMY_ID)
 			pProperty->pDynamixel = boost::make_shared<DummyDynamixelUart>();
 		else
-			pProperty->pDynamixel = boost::make_shared<DynamixelUART>(pUart.get(), pProperty->id);
+			pProperty->pDynamixel = boost::make_shared<DynamixelUART>((Uart*)NULL, pProperty->id);
 
 		dynamixelProperties.push_back(pProperty);
 		dynamixelGroup.push_back(pProperty->pDynamixel);
@@ -419,7 +419,7 @@ bool DynamixelGripper::Setting( Property& parameter)
 
 		if (isEnoughGripperProperty)
 		{	
-			pProperty->pDynamixel = boost::make_shared<DynamixelUART>(pUart.get(), pProperty->id);
+			pProperty->pDynamixel = boost::make_shared<DynamixelUART>((Uart*)NULL, pProperty->id);
 		}
 		else
 		{
@@ -438,24 +438,29 @@ bool DynamixelGripper::Setting( Property& parameter)
 
 	boost::unique_lock<boost::shared_mutex> lock(mJointStateMutex);
 
-	if (pUart != NULL)
-		pUart->Finalize();
+	if (mpUart != NULL)
+		mpUart->Finalize();
 
-	pUart.reset(new SerialCommunicator);
+	mpUart.reset(new SerialCommunicator);
 
-	if(pUart->Initialize(parameter) != API_SUCCESS)
+	if(mpUart->Initialize(parameter) != API_SUCCESS)
 	{
 		PrintMessage("Error : DynamixelManipulator::Setting()->Can't Initialize UART<< %s(%d)\r\n", __FILE__, __LINE__);
 		return false;
 	}
-	else if(pUart->Enable() != API_SUCCESS)
+	
+	if(mpUart->Enable() != API_SUCCESS)
 	{
 		PrintMessage("Error : DynamixelManipulator::Setting()->Can't Enable UART<< %s(%d)\r\n", __FILE__, __LINE__);
 		return false;
 	}
 
-	dynamixelGroup.SetUart(pUart.get());
-
+	dynamixelGroup.SetUart(mpUart.get());
+	for (size_t i = 0, end = dynamixelProperties.size(); i < end; i++)
+	{
+		dynamixelProperties[i]->pDynamixel->SetUart(mpUart.get());
+	}
+	
 	mDynamixelProperties = boost::move(dynamixelProperties);
 	mDynamixelGroup = boost::move(dynamixelGroup);
 
@@ -557,7 +562,7 @@ int DynamixelGripper::GetParameter( Property& parameter )
 
 	boost::shared_lock<boost::shared_mutex> lock(mJointStateMutex);
 
-	if (pUart->GetParameter(parameter) != API_SUCCESS)
+	if (mpUart->GetParameter(parameter) != API_SUCCESS)
 	{
 		PrintMessage("Error : DynamixelManipulator::GetParameter()->Can't get parameter to UART.<< %s(%d)\r\n", __FILE__, __LINE__);
 		return API_ERROR;
@@ -759,14 +764,14 @@ int DynamixelGripper::EmergencyStop()
 
 	boost::shared_lock<boost::shared_mutex> lock(mJointStateMutex);
 
-	pUart->Lock();
+	mpUart->Lock();
 	if (mDynamixelGroup.SetTorqueEnable(false) == false)
 	{
 		PrintMessage("Error : DynamixelManipulator::EmergencyStop()->Can't EmergencyStop Dynamixel.<< %s(%d)\r\n", __FILE__, __LINE__);
-		pUart->Unlock();
+		mpUart->Unlock();
 		return API_ERROR;
 	}
-	pUart->Unlock();
+	mpUart->Unlock();
 	return API_SUCCESS;
 }
 
@@ -936,10 +941,10 @@ void DynamixelGripper::UpdateJointState()
 
 	DynamixelProperty& gripperProperty = **mDynamixelProperties.rbegin();
 
-	pUart->Lock();
+	mpUart->Lock();
 	size_t positionResult = mDynamixelGroup.GetPresentPosition(rawJointPosition);
 	bool resultOfGettingGripperLoad = gripperProperty.pDynamixel->GetPresentLoad(rawGripperJointLoad);
-	pUart->Unlock();
+	mpUart->Unlock();
 
 	for (size_t i = 0, end = mDynamixelProperties.size(); i < end; i++)
 	{
@@ -1025,12 +1030,12 @@ void DynamixelGripper::ControlJoint()
 	}
 
 	// 조인트 위치 설정
-	pUart->Lock();
+	mpUart->Lock();
 	if (!mDynamixelGroup.SetGoalPosition(rawJointPosition))
 	{
 		PrintMessage("Error : DynamixelManipulator::ControlJoint()->Can't SetPosition Dynamixel<< %s(%d)\r\n", __FILE__, __LINE__);
 	}
-	pUart->Unlock();
+	mpUart->Unlock();
 }
 
 #ifdef _WIN32
