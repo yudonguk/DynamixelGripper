@@ -50,6 +50,7 @@ int DynamixelGripper::Initialize( Property parameter )
 
 	mJointPosition.resize(mDynamixelProperties.size());
 	mDesiredJointPosition.resize(mDynamixelProperties.size());
+	mGripperCommand = STOP_GRIPPING;
 
 	_status = DEVICE_READY;
 	return API_SUCCESS;
