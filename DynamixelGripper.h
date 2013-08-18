@@ -2,6 +2,7 @@
 #define __DYNAMIXEL_MANIPULATOR_H__
 
 #include <boost/thread/shared_mutex.hpp>
+#include <boost/smart_ptr.hpp>
 #include <boost/chrono.hpp>
 
 #include <device/Gripper.h>
