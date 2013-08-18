@@ -919,14 +919,34 @@ void DynamixelGripper::ControlJoint()
 	// 그리퍼 제어
 	if (mGripperCommand == START_GRIPPING)
 	{
-		const double loadDifference = gripperProperty.maximumLoad - mGripperJointLoad;
-		const double positionDifference = (gripperProperty.maximumPositionLimit - gripperProperty.minimumPositionLimit) / 7 * (loadDifference / gripperProperty.maximumLoad);
+		// 따라가야할 값과 조작해야할 값의 방향이 반대여서 아래와 같이 처리함
+		const double loadError = mGripperJointLoad - gripperProperty.maximumLoad;
+		const boost::chrono::high_resolution_clock::time_point now 
+			= boost::chrono::high_resolution_clock::now();
+		const double periode 
+			= boost::chrono::duration_cast<boost::chrono::duration<double>>(now - mGripperLoadPIControl.time).count();
+
+		double manipulatedValue = mGripperLoadPIControl.manipulatedValue
+			+ mGripperLoadPIControl.kp * (loadError - mGripperLoadPIControl.error)
+			+ mGripperLoadPIControl.ki * periode * loadError;
+		
+		manipulatedValue = std::min(std::max(manipulatedValue, gripperProperty.minimumPositionLimit)
+			, gripperProperty.maximumPositionLimit);
+
+		// 다음 계산을 위해 저장
+		mGripperLoadPIControl.time = now;
+		mGripperLoadPIControl.error = loadError;
+		mGripperLoadPIControl.manipulatedValue = manipulatedValue;
 		
 		boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(upgradeLock);
-		*mDesiredJointPosition.rbegin() += *mJointPosition.rbegin() + positionDifference;
+		*mDesiredJointPosition.rbegin() = manipulatedValue;
 	}
 	else
 	{
+		mGripperLoadPIControl.time = boost::chrono::high_resolution_clock::now();
+		mGripperLoadPIControl.error = 0.0;
+		mGripperLoadPIControl.manipulatedValue = gripperProperty.minimumPositionLimit;
+
 		boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(upgradeLock);
 		*mDesiredJointPosition.rbegin() = gripperProperty.minimumPositionLimit;
 	}	
