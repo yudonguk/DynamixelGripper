@@ -2,6 +2,7 @@
 #define __DYNAMIXEL_MANIPULATOR_H__
 
 #include <boost/thread/shared_mutex.hpp>
+#include <boost/chrono.hpp>
 
 #include <device/Gripper.h>
 
@@ -49,6 +50,20 @@ protected:
 		{}
 
 		double maximumLoad;
+	};
+
+	struct PIControl
+	{
+		PIControl()
+			: kp(), ki(), time(boost::chrono::high_resolution_clock::now())
+			, error(), manipulatedValue()
+		{
+		}
+
+		double kp, ki;
+		boost::chrono::high_resolution_clock::time_point time;
+		double error;
+		double manipulatedValue;
 	};
 
 public:
@@ -107,6 +122,8 @@ private:
 	std::vector<double> mDesiredJointPosition;
 	double mGripperJointLoad;
 	GripperCommand mGripperCommand;
+
+	PIControl mGripperLoadPIControl;
 };
 
 #endif //__DYNAMIXEL_MANIPULATOR_H__
