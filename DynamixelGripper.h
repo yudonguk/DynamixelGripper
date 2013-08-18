@@ -112,14 +112,15 @@ private:
 	void ControlJoint();
 
 private:
+	boost::shared_mutex mJointStateMutex;
+
+	boost::scoped_ptr<Uart> mpUart;
+	bool mIsGripped;
+
 	// mDynamixelGroup과 mDynamixelProperties의 마지막 원소는 그리퍼의 조인트를 가르킨다.
 	DynamixelGroup mDynamixelGroup;
 	std::vector<boost::shared_ptr<DynamixelProperty>> mDynamixelProperties;
 
-	boost::scoped_ptr<Uart> pUart;
-	bool mIsGripped;
-
-	boost::shared_mutex mJointPositionMutex;
 	// mJointPosition의 마지막 원소는 그리퍼 조인트의 위치이다.
 	std::vector<double> mJointPosition;
 	std::vector<double> mDesiredJointPosition;

@@ -26,6 +26,13 @@ DynamixelUART::~DynamixelUART(void)
 	id = 0xFF;
 }
 
+Uart* DynamixelUART::SetUart( Uart* pUart )
+{
+	Uart* pOldUart = uart;
+	uart = pUart;
+	return pOldUart;
+}
+
 unsigned char DynamixelUART::Checksum(unsigned char *buf, int dataSize)
 {
 	unsigned char result = 0;
@@ -34,7 +41,6 @@ unsigned char DynamixelUART::Checksum(unsigned char *buf, int dataSize)
 	}
 	return ~result;
 }
-
 
 void DynamixelUART::DumpPacket (unsigned char *packet, int packetSize)
 {
