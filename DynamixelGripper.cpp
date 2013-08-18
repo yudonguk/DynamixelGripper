@@ -93,6 +93,10 @@ int DynamixelGripper::Enable()
 		_status = DEVICE_ERROR;
 		return API_ERROR;
 	}
+	lock.unlock();
+
+	StopGripping();
+	RunHoming();
 
 	_status = DEVICE_ACTIVE;
 	return API_SUCCESS;
