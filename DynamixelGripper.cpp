@@ -395,7 +395,7 @@ bool DynamixelGripper::Setting( Property& parameter)
 		}
 
 		//MaximumLoad
-		sprintf(buff, "GripperMaximumLoad");
+		sprintf(buff, "Gripper%s", MAXIMUM_LOAD);
 		if (!parameter.FindName(buff)) 
 		{
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
