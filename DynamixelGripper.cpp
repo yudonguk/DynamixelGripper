@@ -16,7 +16,7 @@
 #include "DynamixelUARTDef.h"
 #include "DummyDynamixelUART.h"
 
-#define JOINT_COUNT				"Size"
+#define JOINT_COUNT				"JointCount"
 #define COUNTERCLOCKWISE_MODE	"CounterclockwiseMode" 
 #define DYNAMIXEL_ID			"DynamixelID"
 #define COMPLIANCE_MARGINE		"ComplianceMargine"
