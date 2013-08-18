@@ -950,13 +950,8 @@ void DynamixelGripper::UpdateJointState()
 	{
 		if (!(positionResult & (1 << i)))
 		{
-			mJointStateMutex.lock_shared();
-
 			// 조인트의 위치를 가져오지 못할 경우, 이전 조인트 위치를 적용한다.
 			jointPosition[i] = mJointPosition[i];
-
-			mJointStateMutex.unlock_shared();
-
 			PrintMessage("Error : DynamixelManipulator::GetPosition()->Can't GetPosition Dynamixel[%d]<< %s(%d)\r\n", i, __FILE__, __LINE__);
 			continue;
 		}
