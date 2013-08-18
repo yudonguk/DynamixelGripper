@@ -931,7 +931,6 @@ void DynamixelGripper::UpdateJointState()
 
 			mJointPositionMutex.unlock_shared();
 
-			PrintMessage("Error : DynamixelManipulator::GetPosition()->Can't GetPosition Dynamixel[%d]<< %s(%d)\r\n", i, __FILE__, __LINE__);
 			continue;
 		}
 
@@ -1006,10 +1005,7 @@ void DynamixelGripper::ControlJoint()
 
 	// 조인트 위치 설정
 	pUart->Lock();
-	if (!mDynamixelGroup.SetGoalPosition(rawJointPosition))
-	{
-		PrintMessage("Error : DynamixelManipulator::ControlJoint()->Can't SetPosition Dynamixel<< %s(%d)\r\n", __FILE__, __LINE__);
-	}
+	mDynamixelGroup.SetGoalPosition(rawJointPosition);
 	pUart->Unlock();
 }
 
