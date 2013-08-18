@@ -7,6 +7,7 @@
 #include <boost/thread/locks.hpp>
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <device/OprosPrintMessage.h>
 #include <OPRoSTypes.h>
@@ -26,12 +27,13 @@
 #define MAXIMUM_VELOCITY		"MaximumVelocity"
 #define MINIMUM_POSITION_LIMIT	"MinimumPositionLimit"
 #define MAXIMUM_POSITION_LIMIT	"MaximumPositionLimit"
+#define HOME_POSITION			"HomePosition"
 #define MAXIMUM_LOAD			"MaximumLoad"
 #define LOAD_CONTROL_P_GAIN		"LoadControlPGain"
-#define LOAD_CONTROL_I_GAIN		"LoadControlPGain"
+#define LOAD_CONTROL_I_GAIN		"LoadControlIGain"
 
 DynamixelGripper::DynamixelGripper()
-	: uart(NULL), mIsGripped(false)
+	: pUart(NULL), mIsGripped(false)
 {}
 
 DynamixelGripper::~DynamixelGripper()
@@ -47,11 +49,7 @@ int DynamixelGripper::Initialize( Property parameter )
 		_status = DEVICE_ERROR;
 		return API_ERROR;
 	}
-
-	mJointPosition.resize(mDynamixelProperties.size());
-	mDesiredJointPosition.resize(mDynamixelProperties.size());
-	mGripperCommand = STOP_GRIPPING;
-
+	
 	_status = DEVICE_READY;
 	return API_SUCCESS;
 }
@@ -62,12 +60,12 @@ int DynamixelGripper::Finalize()
 		Disable();
 
 	mDynamixelGroup.clear();
+	mDynamixelProperties.clear();
 
-	if(uart != NULL)
+	if(pUart != NULL)
 	{
-		uart->Finalize();
-		delete uart;
-		uart = NULL;
+		pUart->Finalize();
+		pUart.reset();
 	}
 
 	_status = DEVICE_CREATED;
@@ -148,21 +146,19 @@ int DynamixelGripper::Disable()
 
 bool DynamixelGripper::Setting( Property& parameter)
 {
-	if (uart != NULL)
+	if (pUart != NULL)
 	{
-		uart->Finalize();
-		delete uart;
-		uart = NULL;
+		pUart->Finalize();
 	}
 
-	uart = new SerialCommunicator;
+	pUart.reset(new SerialCommunicator);
 
-	if(uart->Initialize(parameter) != API_SUCCESS)
+	if(pUart->Initialize(parameter) != API_SUCCESS)
 	{
 		PrintMessage("Error : DynamixelManipulator::Setting()->Can't Initialize UART<< %s(%d)\r\n", __FILE__, __LINE__);
 		return false;
 	}
-	else if(uart->Enable() != API_SUCCESS)
+	else if(pUart->Enable() != API_SUCCESS)
 	{
 		PrintMessage("Error : DynamixelManipulator::Setting()->Can't Enable UART<< %s(%d)\r\n", __FILE__, __LINE__);
 		return false;
@@ -170,7 +166,7 @@ bool DynamixelGripper::Setting( Property& parameter)
 
 	mDynamixelProperties.clear();
 	mDynamixelGroup.clear();
-	mDynamixelGroup.SetUart(uart);
+	mDynamixelGroup.SetUart(pUart.get());
 
 	if (parameter.FindName(JOINT_COUNT) == false)
 	{
@@ -189,8 +185,8 @@ bool DynamixelGripper::Setting( Property& parameter)
 		//CounterclockwiseMode
 		sprintf(buff, "%s%d", COUNTERCLOCKWISE_MODE, i);
 		if (parameter.FindName(buff)) 
-			pDynamixelProperty->isCounterclockwiseMode 
-			= boost::lexical_cast<bool>(parameter.GetValue(buff));
+			pDynamixelProperty->isCounterclockwiseMode
+			= boost::iequals(parameter.GetValue(buff), "true") ? true : false;
 		PrintMessage("%s : %s \r\n", buff, pDynamixelProperty->isCounterclockwiseMode ? "true" : "false");
 
 		//DynamixelID
@@ -200,21 +196,21 @@ bool DynamixelGripper::Setting( Property& parameter)
 			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
 			return false;
 		}
-		pDynamixelProperty->id = boost::lexical_cast<unsigned char>(parameter.GetValue(buff));
+		pDynamixelProperty->id = boost::lexical_cast<int>(parameter.GetValue(buff));
 		PrintMessage("%s : %d \r\n", buff, pDynamixelProperty->id);
 
 		//ComplianceMargine
 		sprintf(buff, "%s%d", COMPLIANCE_MARGINE, i);
 		if (parameter.FindName(buff)) 
 			pDynamixelProperty->complianceMargine
-			= boost::lexical_cast<unsigned char>(parameter.GetValue(buff));
+			= boost::lexical_cast<int>(parameter.GetValue(buff));
 		PrintMessage("%s : %d \r\n", buff, pDynamixelProperty->complianceMargine);
 
 		//ComplianceSlope
 		sprintf(buff, "%s%d", COMPLIANCE_SLOPE, i);
 		if (parameter.FindName(buff)) 
 			pDynamixelProperty->compliacneSlope
-			= boost::lexical_cast<unsigned char>(parameter.GetValue(buff));
+			= boost::lexical_cast<int>(parameter.GetValue(buff));
 		PrintMessage("%s : %d \r\n", buff, pDynamixelProperty->compliacneSlope);
 
 		//PositionResolution
@@ -275,12 +271,19 @@ bool DynamixelGripper::Setting( Property& parameter)
 			= boost::lexical_cast<double>(parameter.GetValue(buff));
 		PrintMessage("%s : %lf \r\n", buff, pDynamixelProperty->maximumPositionLimit);
 
+		//HomePosition
+		sprintf(buff, "%s%d", HOME_POSITION, i);
+		if (parameter.FindName(buff)) 
+			pDynamixelProperty->homePosition
+			= boost::lexical_cast<double>(parameter.GetValue(buff));
+		PrintMessage("%s : %lf \r\n", buff, pDynamixelProperty->maximumPositionLimit);
+
 		PrintMessage("\r\n");
 		
 		if(pDynamixelProperty->id == DummyDynamixelUart::DUMMY_ID)
 			pDynamixelProperty->pDynamixel = boost::make_shared<DummyDynamixelUart>();
 		else
-			pDynamixelProperty->pDynamixel = boost::make_shared<DynamixelUART>(uart, pDynamixelProperty->id);
+			pDynamixelProperty->pDynamixel = boost::make_shared<DynamixelUART>(pUart.get(), pDynamixelProperty->id);
 
 		mDynamixelProperties.push_back(pDynamixelProperty);
 		mDynamixelGroup.push_back(pDynamixelProperty->pDynamixel);
@@ -295,7 +298,7 @@ bool DynamixelGripper::Setting( Property& parameter)
 		sprintf(buff, "Gripper%s", COUNTERCLOCKWISE_MODE);
 		if (parameter.FindName(buff)) 
 			pGripperProperty->isCounterclockwiseMode 
-			= boost::lexical_cast<bool>(parameter.GetValue(buff));
+			= boost::iequals(parameter.GetValue(buff), "true") ? true : false;;
 		PrintMessage("%s : %s \r\n", buff, pGripperProperty->isCounterclockwiseMode ? "true" : "false");
 
 		//DynamixelID
@@ -307,7 +310,7 @@ bool DynamixelGripper::Setting( Property& parameter)
 		}
 		else
 		{
-			pGripperProperty->id = boost::lexical_cast<unsigned char>(parameter.GetValue(buff));
+			pGripperProperty->id = boost::lexical_cast<int>(parameter.GetValue(buff));
 			PrintMessage("%s : %d \r\n", buff, pGripperProperty->id);	
 		}
 		
@@ -315,14 +318,14 @@ bool DynamixelGripper::Setting( Property& parameter)
 		sprintf(buff, "Gripper%s", COMPLIANCE_MARGINE);
 		if (parameter.FindName(buff)) 
 			pGripperProperty->complianceMargine
-			= boost::lexical_cast<unsigned char>(parameter.GetValue(buff));
+			= boost::lexical_cast<int>(parameter.GetValue(buff));
 		PrintMessage("%s : %d \r\n", buff, pGripperProperty->complianceMargine);	
 		
 		//ComplianceSlope
 		sprintf(buff, "Gripper%s", COMPLIANCE_SLOPE);
 		if (parameter.FindName(buff)) 
 			pGripperProperty->compliacneSlope
-			= boost::lexical_cast<unsigned char>(parameter.GetValue(buff));
+			= boost::lexical_cast<int>(parameter.GetValue(buff));
 		PrintMessage("%s : %d \r\n", buff, pGripperProperty->compliacneSlope);	
 
 		//PositionResolution
@@ -420,7 +423,7 @@ bool DynamixelGripper::Setting( Property& parameter)
 		{
 			mGripperLoadPIControl.kp
 				= boost::lexical_cast<double>(parameter.GetValue(buff));
-			PrintMessage("%s : %lf \r\n", buff, pGripperProperty->maximumLoad);	
+			PrintMessage("%s : %lf \r\n", buff, mGripperLoadPIControl.kp);	
 		}
 
 		//LoadControlIGain
@@ -434,12 +437,12 @@ bool DynamixelGripper::Setting( Property& parameter)
 		{
 			mGripperLoadPIControl.ki
 				= boost::lexical_cast<double>(parameter.GetValue(buff));
-			PrintMessage("%s : %lf \r\n", buff, pGripperProperty->maximumLoad);	
+			PrintMessage("%s : %lf \r\n", buff, mGripperLoadPIControl.ki);	
 		}
 
 		if (isEnoughGripperProperty)
 		{	
-			pGripperProperty->pDynamixel = boost::make_shared<DynamixelUART>(uart, pGripperProperty->id);
+			pGripperProperty->pDynamixel = boost::make_shared<DynamixelUART>(pUart.get(), pGripperProperty->id);
 		}
 		else
 		{
@@ -455,6 +458,12 @@ bool DynamixelGripper::Setting( Property& parameter)
 		mDynamixelProperties.push_back(pGripperProperty);
 		mDynamixelGroup.push_back(pGripperProperty->pDynamixel);
 	}
+
+	mJointPosition.clear();
+	mDesiredJointPosition.clear();
+	mJointPosition.resize(mDynamixelProperties.size());
+	mDesiredJointPosition.resize(mDynamixelProperties.size());
+	mGripperCommand = STOP_GRIPPING;
 
 	return true;
 }
@@ -547,7 +556,7 @@ int DynamixelGripper::GetParameter( Property& parameter )
 		return API_ERROR;
 	}
 
-	if (uart->GetParameter(parameter) != API_SUCCESS)
+	if (pUart->GetParameter(parameter) != API_SUCCESS)
 	{
 		PrintMessage("Error : DynamixelManipulator::GetParameter()->Can't get parameter to UART.<< %s(%d)\r\n", __FILE__, __LINE__);
 		return API_ERROR;
@@ -563,19 +572,19 @@ int DynamixelGripper::GetParameter( Property& parameter )
 
 		//CounterclockwiseMode
 		sprintf(buff, "%s%d", COUNTERCLOCKWISE_MODE, i);
-		parameter.SetValue(buff, boost::lexical_cast<std::string>(property.isCounterclockwiseMode));
+		parameter.SetValue(buff, property.isCounterclockwiseMode ? "true" : "false");
 		
 		//DynamixelID
 		sprintf(buff, "%s%d", DYNAMIXEL_ID, i);
-		parameter.SetValue(buff, boost::lexical_cast<std::string>(property.id));
+		parameter.SetValue(buff, boost::lexical_cast<std::string>(int(property.id)));
 		
 		//ComplianceMargine
 		sprintf(buff, "%s%d", COMPLIANCE_MARGINE, i);
-		parameter.SetValue(buff, boost::lexical_cast<std::string>(property.complianceMargine));
+		parameter.SetValue(buff, boost::lexical_cast<std::string>(int(property.complianceMargine)));
 
 		//ComplianceSlope
 		sprintf(buff, "%s%d", COMPLIANCE_SLOPE, i);
-		parameter.SetValue(buff, boost::lexical_cast<std::string>(property.compliacneSlope));
+		parameter.SetValue(buff, boost::lexical_cast<std::string>(int(property.compliacneSlope)));
 
 		//PositionResolution
 		sprintf(buff, "%s%d", POSITION_RESOLUTION, i);
@@ -600,6 +609,10 @@ int DynamixelGripper::GetParameter( Property& parameter )
 		//MaximumPositionLimit
 		sprintf(buff, "%s%d", MAXIMUM_POSITION_LIMIT, i);
 		parameter.SetValue(buff, boost::lexical_cast<std::string>(property.maximumPositionLimit));
+
+		//HomePosition
+		sprintf(buff, "%s%d", HOME_POSITION, i);
+		parameter.SetValue(buff, boost::lexical_cast<std::string>(property.homePosition));
 	}
 
 	{
@@ -610,19 +623,19 @@ int DynamixelGripper::GetParameter( Property& parameter )
 		{
 			//CounterclockwiseMode
 			sprintf(buff, "Gripper%s", COUNTERCLOCKWISE_MODE);
-			parameter.SetValue(buff, boost::lexical_cast<std::string>(property.isCounterclockwiseMode));
+			parameter.SetValue(buff, property.isCounterclockwiseMode ? "true" : "false");
 
 			//DynamixelID
 			sprintf(buff, "Gripper%s", DYNAMIXEL_ID);
-			parameter.SetValue(buff, boost::lexical_cast<std::string>(property.id));
+			parameter.SetValue(buff, boost::lexical_cast<std::string>(int(property.id)));
 
 			//ComplianceMargine
 			sprintf(buff, "Gripper%s", COMPLIANCE_MARGINE);
-			parameter.SetValue(buff, boost::lexical_cast<std::string>(property.complianceMargine));
+			parameter.SetValue(buff, boost::lexical_cast<std::string>(int(property.complianceMargine)));
 
 			//ComplianceSlope
 			sprintf(buff, "Gripper%s", COMPLIANCE_SLOPE);
-			parameter.SetValue(buff, boost::lexical_cast<std::string>(property.compliacneSlope));
+			parameter.SetValue(buff, boost::lexical_cast<std::string>(int(property.compliacneSlope)));
 
 			//PositionResolution
 			sprintf(buff, "Gripper%s", POSITION_RESOLUTION);
@@ -691,6 +704,11 @@ int DynamixelGripper::RunHoming()
 	std::vector<double> position(mDynamixelProperties.size() - 1);
 	std::vector<unsigned long> time(position.size());
 
+	for (size_t i = 0, end = position.size(); i < end; i++)
+	{
+		position[i] = mDynamixelProperties[i]->homePosition;
+	}
+
 	if (SetPosition(position,time) != API_SUCCESS)
 	{
 		PrintMessage("Error : DynamixelManipulator::StartHoming()->Can't StartHoming Dynamixel<< %s(%d)\r\n", __FILE__, __LINE__);
@@ -734,14 +752,14 @@ int DynamixelGripper::EmergencyStop()
 		return API_ERROR;
 	}
 
-	uart->Lock();
+	pUart->Lock();
 	if (mDynamixelGroup.SetTorqueEnable(false) == false)
 	{
 		PrintMessage("Error : DynamixelManipulator::EmergencyStop()->Can't EmergencyStop Dynamixel.<< %s(%d)\r\n", __FILE__, __LINE__);
-		uart->Unlock();
+		pUart->Unlock();
 		return API_ERROR;
 	}
-	uart->Unlock();
+	pUart->Unlock();
 	return API_SUCCESS;
 }
 
@@ -898,7 +916,6 @@ double DynamixelGripper::ConvertLoadUnitToPercent( unsigned short dynamixelValue
 	return percent;
 }
 
-
 void DynamixelGripper::UpdateJointState()
 {
 	std::vector<unsigned short> rawJointPosition;
@@ -907,10 +924,10 @@ void DynamixelGripper::UpdateJointState()
 
 	DynamixelProperty& gripperProperty = **mDynamixelProperties.rbegin();
 
-	uart->Lock();
+	pUart->Lock();
 	size_t positionResult = mDynamixelGroup.GetPresentPosition(rawJointPosition);
 	bool resultOfGettingGripperLoad = gripperProperty.pDynamixel->GetPresentLoad(rawGripperJointLoad);
-	uart->Unlock();
+	pUart->Unlock();
 
 	for (size_t i = 0, end = mDynamixelProperties.size(); i < end; i++)
 	{
@@ -997,12 +1014,12 @@ void DynamixelGripper::ControlJoint()
 	upgradeLock.unlock();
 
 	// 조인트 위치 설정
-	uart->Lock();
+	pUart->Lock();
 	if (!mDynamixelGroup.SetGoalPosition(rawJointPosition))
 	{
 		PrintMessage("Error : DynamixelManipulator::ControlJoint()->Can't SetPosition Dynamixel<< %s(%d)\r\n", __FILE__, __LINE__);
 	}
-	uart->Unlock();
+	pUart->Unlock();
 }
 
 #ifdef WIN32
@@ -1040,6 +1057,7 @@ OprosApi* GetAPI()
 #undef MAXIMUM_VELOCITY
 #undef MINIMUM_POSITION_LIMIT
 #undef MAXIMUM_POSITION_LIMIT
+#undef HOME_POSITION
 #undef MAXIMUM_LOAD
 #undef LOAD_CONTROL_P_GAIN
 #undef LOAD_CONTROL_I_GAIN

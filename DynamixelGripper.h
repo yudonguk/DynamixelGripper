@@ -2,6 +2,7 @@
 #define __DYNAMIXEL_MANIPULATOR_H__
 
 #include <boost/thread/shared_mutex.hpp>
+#include <boost/smart_ptr.hpp>
 #include <boost/chrono.hpp>
 
 #include <device/Gripper.h>
@@ -27,6 +28,7 @@ protected:
 			, compliacneSlope(32), positionResolution(0.0), positionOffset(0.0)
 			, maximumPower(100.0), maximuVelocity(45.0)
 			, minimumPositionLimit(-180.0), maximumPositionLimit(180.0)
+			, homePosition(0.0)
 		{}
 
 		boost::shared_ptr<DynamixelUART> pDynamixel;
@@ -41,6 +43,7 @@ protected:
 		double maximuVelocity;
 		double minimumPositionLimit;
 		double maximumPositionLimit;
+		double homePosition;
 	};
 
 	struct GripperDynamixelProperty : public DynamixelProperty
@@ -113,7 +116,7 @@ private:
 	DynamixelGroup mDynamixelGroup;
 	std::vector<boost::shared_ptr<DynamixelProperty>> mDynamixelProperties;
 
-	Uart* uart;
+	boost::scoped_ptr<Uart> pUart;
 	bool mIsGripped;
 
 	boost::shared_mutex mJointPositionMutex;

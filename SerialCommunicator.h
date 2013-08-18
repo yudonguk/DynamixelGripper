@@ -11,6 +11,7 @@
 #include <boost/asio/placeholders.hpp>
 #include <boost/asio/read.hpp>
 #include <boost/asio/write.hpp>
+#include <boost/bind.hpp>
 
 #include <device/Uart.h>
 
@@ -169,12 +170,12 @@ public:
 		Unlock();
 
 		if(!(Setter(parameter, PROPERTY_PORT_NAME, property.baudRate)
-			|| Setter(parameter, PROPERTY_TIME_OUT, property.timeOut)
-			|| Setter(parameter, PROPERTY_BAUD_RATE, property.baudRate)
-			|| Setter(parameter, PROPERTY_DATA_BITS, property.dataBits)
-			|| Setter(parameter, PROPERTY_STOP_BITS, property.stopBits)
-			|| Setter(parameter, PROPERTY_PARITY, property.parity)
-			|| Setter(parameter, PROPERTY_FLOW_CONTROL, property.flowControl)
+			&& Setter(parameter, PROPERTY_TIME_OUT, property.timeOut)
+			&& Setter(parameter, PROPERTY_BAUD_RATE, property.baudRate)
+			&& Setter(parameter, PROPERTY_DATA_BITS, property.dataBits)
+			&& Setter(parameter, PROPERTY_STOP_BITS, property.stopBits)
+			&& Setter(parameter, PROPERTY_PARITY, property.parity)
+			&& Setter(parameter, PROPERTY_FLOW_CONTROL, property.flowControl)
 			))
 			return API_ERROR;
 
