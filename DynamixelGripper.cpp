@@ -883,10 +883,14 @@ int DynamixelGripper::IsGripped(bool &isGripped)
 		// 그리퍼 조인트에 걸리는 부하가 목표 부하의 80% 이상 일경우
 		if ((property.maximumLoad < 0.0 == mGripperJointLoad < 0.0)
 			&& std::abs(mGripperJointLoad) > std::abs(property.maximumLoad * 0.8))
-			return 1;
+		{
+			isGripped = true;
+			return API_SUCCESS;
+		}
 	}
-	
-	return 0;
+
+	isGripped = false;	
+	return API_SUCCESS;
 }
 
 unsigned short DynamixelGripper::ConvertPowerUnitToDynamixel( const double& percent)
