@@ -862,7 +862,7 @@ double DynamixelGripper::ConvertVelocityUnitToRPM( unsigned short dynamixelValue
 double DynamixelGripper::ConvertLoadUnitToPercent( unsigned short dynamixelValue )
 {
 	dynamixelValue = std::min(std::max(int(dynamixelValue & 0x3FF), 0), 2047);
-	double percent = (dynamixelValue & 0x3FF) * 0.1 * (dynamixelValue & 0x400 ? -1 : 1);
+	double percent = (dynamixelValue & 0x3FF) * 0.1 * (dynamixelValue & 0x400 ? 1.0 : -1.0);
 	return percent;
 }
 
