@@ -58,16 +58,7 @@ int DynamixelGripper::Finalize()
 {
 	if (_status == DEVICE_ACTIVE)
 		Disable();
-
-	mDynamixelGroup.clear();
-	mDynamixelProperties.clear();
-
-	if(pUart != NULL)
-	{
-		pUart->Finalize();
-		pUart.reset();
-	}
-
+	
 	_status = DEVICE_CREATED;
 	return API_SUCCESS;
 }
