@@ -119,7 +119,7 @@ private:
 	boost::scoped_ptr<Uart> pUart;
 	bool mIsGripped;
 
-	boost::shared_mutex mJointPositionMutex;
+	boost::shared_mutex mJointStateMutex;
 	// mJointPosition의 마지막 원소는 그리퍼 조인트의 위치이다.
 	std::vector<double> mJointPosition;
 	std::vector<double> mDesiredJointPosition;

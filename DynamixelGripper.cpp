@@ -774,7 +774,7 @@ int DynamixelGripper::SetPosition( vector<double> position, vector<unsigned long
 		return API_ERROR;
 	}
 
-	boost::unique_lock<boost::shared_mutex> lock(mJointPositionMutex);
+	boost::unique_lock<boost::shared_mutex> lock(mJointStateMutex);
 
 	std::copy(position.begin(), position.end(), mDesiredJointPosition.begin());
 
@@ -789,7 +789,7 @@ int DynamixelGripper::GetPosition( vector<double> &position )
 		return API_ERROR;
 	}
 
-	boost::shared_lock<boost::shared_mutex> lock(mJointPositionMutex);
+	boost::shared_lock<boost::shared_mutex> lock(mJointStateMutex);
 
 	// mJointPosition의 마지막 원소는 그리퍼 조인트의 위치 이므로,
 	position.resize(mJointPosition.size() - 1);
@@ -811,7 +811,7 @@ int DynamixelGripper::StartGripping()
 	if (property.id == DummyDynamixelUart::DUMMY_ID)
 		return API_NOT_SUPPORTED;
 
-	boost::unique_lock<boost::shared_mutex> lock(mJointPositionMutex);
+	boost::unique_lock<boost::shared_mutex> lock(mJointStateMutex);
 	mGripperCommand = START_GRIPPING;
 	
 	mIsGripped = true;
@@ -831,7 +831,7 @@ int DynamixelGripper::StopGripping()
 	if (property.id == DummyDynamixelUart::DUMMY_ID)
 		return API_NOT_SUPPORTED;
 
-	boost::unique_lock<boost::shared_mutex> lock(mJointPositionMutex);
+	boost::unique_lock<boost::shared_mutex> lock(mJointStateMutex);
 	mGripperCommand = STOP_GRIPPING;
 
 	mIsGripped = false;
@@ -854,7 +854,7 @@ int DynamixelGripper::IsGripped(bool &isGripped)
 	isGripped = mIsGripped;
 	return API_SUCCESS;
 
-	boost::shared_lock<boost::shared_mutex> lock(mJointPositionMutex);
+	boost::shared_lock<boost::shared_mutex> lock(mJointStateMutex);
 	std::cout << mGripperJointLoad << std::endl;
 
 	if (mGripperJointLoad > property.maximumLoad * 0.9)
@@ -924,12 +924,12 @@ void DynamixelGripper::UpdateJointState()
 	{
 		if (!(positionResult & (1 << i)))
 		{
-			mJointPositionMutex.lock_shared();
+			mJointStateMutex.lock_shared();
 
 			// 조인트의 위치를 가져오지 못할 경우, 이전 조인트 위치를 적용한다.
 			jointPosition[i] = mJointPosition[i];
 
-			mJointPositionMutex.unlock_shared();
+			mJointStateMutex.unlock_shared();
 
 			PrintMessage("Error : DynamixelManipulator::GetPosition()->Can't GetPosition Dynamixel[%d]<< %s(%d)\r\n", i, __FILE__, __LINE__);
 			continue;
@@ -943,7 +943,7 @@ void DynamixelGripper::UpdateJointState()
 		, property.positionOffset, property.positionResolution);
 	}
 
-	boost::unique_lock<boost::shared_mutex> lock(mJointPositionMutex);
+	boost::unique_lock<boost::shared_mutex> lock(mJointStateMutex);
 	mJointPosition = std::move(jointPosition);
 	// 그리퍼 조인트의 하중을 얻어왔을 경우에만 갱신
 	if(resultOfGettingGripperLoad)
@@ -953,7 +953,7 @@ void DynamixelGripper::UpdateJointState()
 
 void DynamixelGripper::ControlJoint()
 {
-	boost::upgrade_lock<boost::shared_mutex> upgradeLock(mJointPositionMutex);
+	boost::upgrade_lock<boost::shared_mutex> upgradeLock(mJointStateMutex);
 	GripperDynamixelProperty& gripperProperty = static_cast<GripperDynamixelProperty&>(**mDynamixelProperties.rbegin());
 	
 	// 그리퍼 제어
