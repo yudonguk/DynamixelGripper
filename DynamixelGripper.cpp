@@ -1021,7 +1021,7 @@ void DynamixelGripper::ControlJoint()
 
 		rawJointPosition[i] = ConvertPositionUnitToDynamixel(
 			(property.isCounterclockwiseMode ? 1.0 : -1.0) * mDesiredJointPosition[i]
-		, mDynamixelProperties[i]->positionOffset, mDynamixelProperties[i]->positionResolution);
+		, property.positionOffset, property.positionResolution);
 	}
 	
 	// 조인트 위치 설정
