@@ -27,6 +27,8 @@
 #define MINIMUM_POSITION_LIMIT	"MinimumPositionLimit"
 #define MAXIMUM_POSITION_LIMIT	"MaximumPositionLimit"
 #define MAXIMUM_LOAD			"MaximumLoad"
+#define LOAD_CONTROL_P_GAIN		"LoadControlPGain"
+#define LOAD_CONTROL_I_GAIN		"LoadControlPGain"
 
 DynamixelGripper::DynamixelGripper()
 	: uart(NULL), mIsGripped(false)
@@ -406,6 +408,34 @@ bool DynamixelGripper::Setting( Property& parameter)
 			PrintMessage("%s : %lf \r\n", buff, pGripperProperty->maximumLoad);	
 		}
 
+		//LoadControlPGain
+		sprintf(buff, "Gripper%s", LOAD_CONTROL_P_GAIN);
+		if (!parameter.FindName(buff)) 
+		{
+			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
+			isEnoughGripperProperty =  false;
+		}
+		else
+		{
+			mGripperLoadPIControl.kp
+				= boost::lexical_cast<double>(parameter.GetValue(buff));
+			PrintMessage("%s : %lf \r\n", buff, pGripperProperty->maximumLoad);	
+		}
+
+		//LoadControlIGain
+		sprintf(buff, "Gripper%s", LOAD_CONTROL_I_GAIN);
+		if (!parameter.FindName(buff)) 
+		{
+			PrintMessage("Error : DynamixelManipulator::Setting()->Can't find %s<< %s(%d)\r\n", buff, __FILE__, __LINE__);
+			isEnoughGripperProperty =  false;
+		}
+		else
+		{
+			mGripperLoadPIControl.ki
+				= boost::lexical_cast<double>(parameter.GetValue(buff));
+			PrintMessage("%s : %lf \r\n", buff, pGripperProperty->maximumLoad);	
+		}
+
 		if (isEnoughGripperProperty)
 		{	
 			pGripperProperty->pDynamixel = boost::make_shared<DynamixelUART>(uart, pGripperProperty->id);
@@ -620,6 +650,14 @@ int DynamixelGripper::GetParameter( Property& parameter )
 			//MaximumLoad
 			sprintf(buff, "Gripper%s", MAXIMUM_LOAD);
 			parameter.SetValue(buff, boost::lexical_cast<std::string>(property.maximumLoad));
+
+			//LoadControlPGain
+			sprintf(buff, "Gripper%s", LOAD_CONTROL_P_GAIN);
+			parameter.SetValue(buff, boost::lexical_cast<std::string>(mGripperLoadPIControl.kp));
+
+			//LoadControlIGain
+			sprintf(buff, "Gripper%s", LOAD_CONTROL_I_GAIN);
+			parameter.SetValue(buff, boost::lexical_cast<std::string>(mGripperLoadPIControl.ki));
 		}
 	}
 
@@ -1009,3 +1047,5 @@ OprosApi* GetAPI()
 #undef MINIMUM_POSITION_LIMIT
 #undef MAXIMUM_POSITION_LIMIT
 #undef MAXIMUM_LOAD
+#undef LOAD_CONTROL_P_GAIN
+#undef LOAD_CONTROL_I_GAIN
