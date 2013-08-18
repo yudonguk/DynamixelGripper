@@ -426,7 +426,7 @@ bool DynamixelGripper::Setting( Property& parameter)
 		{
 			mGripperLoadPIControl.kp
 				= boost::lexical_cast<double>(parameter.GetValue(buff));
-			PrintMessage("%s : %lf \r\n", buff, pGripperProperty->maximumLoad);	
+			PrintMessage("%s : %lf \r\n", buff, mGripperLoadPIControl.kp);	
 		}
 
 		//LoadControlIGain
@@ -440,7 +440,7 @@ bool DynamixelGripper::Setting( Property& parameter)
 		{
 			mGripperLoadPIControl.ki
 				= boost::lexical_cast<double>(parameter.GetValue(buff));
-			PrintMessage("%s : %lf \r\n", buff, pGripperProperty->maximumLoad);	
+			PrintMessage("%s : %lf \r\n", buff, mGripperLoadPIControl.ki);	
 		}
 
 		if (isEnoughGripperProperty)
