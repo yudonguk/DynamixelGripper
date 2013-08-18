@@ -1,18 +1,14 @@
 ﻿#ifndef __DYNAMIXEL_MANIPULATOR_H__
 #define __DYNAMIXEL_MANIPULATOR_H__
 
-#include <device/Manipulator.h>
+#include <boost/thread/shared_mutex.hpp>
+#include <boost/chrono.hpp>
+
 #include <device/Gripper.h>
-#include <device/ServoActuator.h>
-#include <oprostypes.h>
-#include <boost/smart_ptr.hpp>
-#include <boost/thread.hpp>
 
 #include "DynamixelUART.h"
 #include "DynamixelGroup.h"
 #include "DummyDynamixelUART.h"
-
-#include "MessageQueue.h"
 
 class DynamixelGripper : public Gripper
 {
@@ -56,6 +52,20 @@ protected:
 		double maximumLoad;
 	};
 
+	struct PIControl
+	{
+		PIControl()
+			: kp(), ki(), time(boost::chrono::high_resolution_clock::now())
+			, error(), manipulatedValue()
+		{
+		}
+
+		double kp, ki;
+		boost::chrono::high_resolution_clock::time_point time;
+		double error;
+		double manipulatedValue;
+	};
+
 public:
 	DynamixelGripper();
 	virtual ~DynamixelGripper();
@@ -95,15 +105,13 @@ private:
 	static double ConvertLoadUnitToPercent(unsigned short dynamixelValue);
 
 private:
-	void GripperControlThreadHandler();
+	void UpdateJointState();
+	void ControlJoint();
 
 private:
 	// mDynamixelGroup과 mDynamixelProperties의 마지막 원소는 그리퍼의 조인트를 가르킨다.
 	DynamixelGroup mDynamixelGroup;
 	std::vector<boost::shared_ptr<DynamixelProperty>> mDynamixelProperties;
-
-	MessageQueue<GripperCommand> gripperMessageQueue;
-	boost::thread* gripperControlThread;
 
 	Uart* uart;
 	bool mIsGripped;
@@ -111,7 +119,11 @@ private:
 	boost::shared_mutex mJointPositionMutex;
 	// mJointPosition의 마지막 원소는 그리퍼 조인트의 위치이다.
 	std::vector<double> mJointPosition;
+	std::vector<double> mDesiredJointPosition;
 	double mGripperJointLoad;
+	GripperCommand mGripperCommand;
+
+	PIControl mGripperLoadPIControl;
 };
 
 #endif //__DYNAMIXEL_MANIPULATOR_H__
