@@ -840,8 +840,7 @@ int DynamixelGripper::StartGripping()
 
 	boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(upgradeLock);
 	mGripperCommand = START_GRIPPING;	
-	mIsGripped = true;
-
+	
 	return API_SUCCESS;
 }
 
@@ -861,8 +860,7 @@ int DynamixelGripper::StopGripping()
 
 	boost::upgrade_to_unique_lock<boost::shared_mutex> uniqueLock(upgradeLock);
 	mGripperCommand = STOP_GRIPPING;
-	mIsGripped = false;
-
+	
 	return API_SUCCESS;
 }
 
@@ -880,17 +878,15 @@ int DynamixelGripper::IsGripped(bool &isGripped)
 	if (property.id == DummyDynamixelUart::DUMMY_ID)
 		return API_NOT_SUPPORTED;
 
-	isGripped = mIsGripped;
-	return API_SUCCESS;
-
-	std::cout << mGripperJointLoad << std::endl;
-
-	if (mGripperJointLoad > property.maximumLoad * 0.9)
-	{
-		return 1;
+	if (mGripperCommand == START_GRIPPING)
+	{		
+		// 그리퍼 조인트에 걸리는 부하가 목표 부하의 80% 이상 일경우
+		if ((property.maximumLoad < 0.0 == mGripperJointLoad < 0.0)
+			&& std::abs(mGripperJointLoad) > std::abs(property.maximumLoad * 0.8))
+			return 1;
 	}
-
-	return API_SUCCESS;
+	
+	return 0;
 }
 
 unsigned short DynamixelGripper::ConvertPowerUnitToDynamixel( const double& percent)
